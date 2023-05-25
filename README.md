@@ -20,8 +20,11 @@
 
 ## Done
 
-Split NFT manager into 2 (NFTManager and NFT) and changed it so they both do not exceed size and can access position mappings by replacing
+Split NFT manager into 2 (NFTManager and NFT) and changed it so they both do not exceed size and can access
+position mappings by replacing
+
 TokenPosition memory tokenPosition = nft.positions[params.tokenId];
+
 with
 
         (address _pool, int24 _lowerTick, int24 _upperTick) = nft
@@ -32,6 +35,8 @@ with
             _lowerTick,
             _upperTick
         );
+
+- Created the swap and mint frontends (beta)
 
 ## IMPORTANT
 
@@ -56,10 +61,9 @@ To reduce contract size, create a separate contract and interface that will have
   TokenPosition memory position
   ) internal view returns (bytes32 key)
 
-
-    /*
-        Returns position ID within the NFT manager
-    */
+  /_
+  Returns position ID within the NFT manager
+  _/
 
 - function \_positionKey(
   TokenPosition memory position
