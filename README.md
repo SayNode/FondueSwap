@@ -8,7 +8,7 @@
 
 ## UniswapV3ManagerMint
 
-- In mint, do it so it receives the price and not the tick. We can do this using the function getTickAtSqrtRatio in the TickMath library
+- See if I can eliminate it fully now that the substitute is almost done
 
 ## UniswapV3ManagerSwaps
 
@@ -17,28 +17,9 @@
 ## NFT
 
 - Reduce contract size
+- In mint, do it so it receives the price and not the tick. We can do this using the function getTickAtSqrtRatio in the TickMath library
 
-## Done
-
-Split NFT manager into 2 (NFTManager and NFT) and changed it so they both do not exceed size and can access
-position mappings by replacing
-
-TokenPosition memory tokenPosition = nft.positions[params.tokenId];
-
-with
-
-        (address _pool, int24 _lowerTick, int24 _upperTick) = nft
-            .tokenIDtoPosition(params.tokenId);
-
-        TokenPosition memory tokenPosition = TokenPosition(
-            _pool,
-            _lowerTick,
-            _upperTick
-        );
-
-- Created the swap and mint frontends (beta)
-
-## IMPORTANT
+## IMPORTANT - TO DO
 
 To reduce contract size, create a separate contract and interface that will have the
 
@@ -70,3 +51,23 @@ To reduce contract size, create a separate contract and interface that will have
   ) internal pure returns (bytes32 key)
 
 This way we can remove them from NFT and from UniswapV3NFTManager
+
+# DONE
+
+Split NFT manager into 2 (NFTManager and NFT) and changed it so they both do not exceed size and can access
+position mappings by replacing
+
+TokenPosition memory tokenPosition = nft.positions[params.tokenId];
+
+with
+
+        (address _pool, int24 _lowerTick, int24 _upperTick) = nft
+            .tokenIDtoPosition(params.tokenId);
+
+        TokenPosition memory tokenPosition = TokenPosition(
+            _pool,
+            _lowerTick,
+            _upperTick
+        );
+
+- Created the swap and mint frontends (beta)
