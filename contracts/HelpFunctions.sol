@@ -10,27 +10,6 @@ library HelpFunctions {
     error NotAuthorized();
     error SlippageCheckFailed(uint256 amount0, uint256 amount1);
 
-    // function _tokenURI(
-    //     address receivedPool,
-    //     int24 lowerTick,
-    //     int24 upperTick
-    // ) public view returns (string memory) {
-    //     if (receivedPool == address(0x00)) revert WrongToken();
-
-    //     IUniswapV3Pool pool = IUniswapV3Pool(receivedPool);
-
-    //     return
-    //         NFTRenderer.render(
-    //             NFTRenderer.RenderParams({
-    //                 pool: receivedPool,
-    //                 owner: address(this),
-    //                 lowerTick: lowerTick,
-    //                 upperTick: upperTick,
-    //                 fee: pool.fee()
-    //             })
-    //         );
-    // }
-
     struct MintParams {
         address recipient;
         address tokenA;
@@ -42,31 +21,6 @@ library HelpFunctions {
         uint256 amount1Desired;
         uint256 amount0Min;
         uint256 amount1Min;
-    }
-
-    // function helpMint(
-    //     address factory,
-    //     MintParams memory params
-    // ) public view returns (IUniswapV3Pool) {
-    //     IUniswapV3Pool pool = _getPool(
-    //         factory,
-    //         params.tokenA,
-    //         params.tokenB,
-    //         params.fee
-    //     );
-
-    //     return (pool);
-    // }
-
-    function helpBurn(TokenPosition memory tokenPosition) public view {
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
-
-        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
-        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
-            .positions(_poolPositionKey(tokenPosition));
-
-        if (liquidity > 0 || tokensOwed0 > 0 || tokensOwed1 > 0)
-            revert PositionNotCleared();
     }
 
     struct TokenPosition {

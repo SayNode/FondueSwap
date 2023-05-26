@@ -4,17 +4,12 @@ pragma solidity ^0.8.14;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./HelpFunctions.sol";
 
-//import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
-
-//import "./lib/LiquidityMath.sol";
 import "./lib/NFTRenderer.sol";
-
-//import "./lib/PoolAddress.sol";
-//import "./lib/TickMath.sol";
 
 contract NFT is ERC721 {
     error NotAuthorized();
+    error PositionNotCleared();
 
     event AddLiquidity(
         uint256 indexed tokenId,
@@ -115,17 +110,17 @@ contract NFT is ERC721 {
             !(isApprovedForAll(owner, msg.sender)) &&
             getApproved(tokenId) != msg.sender
         ) revert NotAuthorized();
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        HelpFunctions.helpBurn(tokenPosition);
         // HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        // if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        // HelpFunctions.helpBurn(tokenPosition);
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
-        // IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
-        // (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
-        //     .positions(HelpFunctions._poolPositionKey(tokenPosition));
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
+            .positions(HelpFunctions._poolPositionKey(tokenPosition));
 
-        // if (liquidity > 0 || tokensOwed0 > 0 || tokensOwed1 > 0)
-        //     revert PositionNotCleared();
+        if (liquidity > 0 || tokensOwed0 > 0 || tokensOwed1 > 0)
+            revert PositionNotCleared();
 
         delete positions[tokenId];
         _burn(tokenId);
