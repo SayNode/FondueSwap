@@ -2,6 +2,7 @@
 pragma solidity ^0.8.14;
 
 import "./new/Utils.sol";
+import "./lib/console.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3FlashCallback.sol";
@@ -268,6 +269,7 @@ contract Pool is IUniswapV3Pool {
             lowerTick < TickMath.MIN_TICK ||
             upperTick > TickMath.MAX_TICK
         ) revert InvalidTickRange();
+
         if (amount == 0) revert ZeroLiquidity();
         (, int256 amount0Int, int256 amount1Int) = _modifyPosition(
             ModifyPositionParams({
@@ -277,18 +279,20 @@ contract Pool is IUniswapV3Pool {
                 liquidityDelta: int128(amount)
             })
         );
+
         amount0 = uint256(amount0Int);
         amount1 = uint256(amount1Int);
         uint256 balance0Before;
         uint256 balance1Before;
         if (amount0 > 0) balance0Before = balance0();
         if (amount1 > 0) balance1Before = balance1();
-
+        console.log("\n----------------", msg.sender); ////////////////////////////////
         IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(
             amount0,
             amount1,
             data
         );
+
         if (amount0 > 0 && balance0Before + amount0 > balance0())
             revert InsufficientInputAmount();
         if (amount1 > 0 && balance1Before + amount1 > balance1())

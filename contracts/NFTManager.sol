@@ -38,6 +38,14 @@ contract NFTManager {
     address public immutable factory;
     INFT public immutable nft;
 
+    struct AddLiquidityParams {
+        uint256 tokenId;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+    }
+
     modifier isApprovedOrOwner(uint256 tokenId) {
         address owner = nft.ownerOf(tokenId);
         if (
@@ -52,14 +60,6 @@ contract NFTManager {
     constructor(address factoryAddress, address nftAddress) {
         factory = factoryAddress;
         nft = INFT(nftAddress);
-    }
-
-    struct AddLiquidityParams {
-        uint256 tokenId;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
     }
 
     function addLiquidity(

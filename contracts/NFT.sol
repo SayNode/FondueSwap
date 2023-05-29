@@ -3,12 +3,18 @@ pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./HelpFunctions.sol";
+import "./lib/console.sol";
 
+import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
-
+import "./lib/LiquidityMath.sol";
 import "./lib/NFTRenderer.sol";
+import "./lib/PoolAddress.sol";
+import "./lib/TickMath.sol";
+import "./lib/Path.sol";
 
 contract NFT is ERC721 {
+    using Path for bytes;
     error NotAuthorized();
     error PositionNotCleared();
 
@@ -124,5 +130,18 @@ contract NFT is ERC721 {
         delete positions[tokenId];
         _burn(tokenId);
         totalSupply--;
+    }
+
+    function uniswapV3MintCallback(
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata data
+    ) public {
+        IUniswapV3Pool.CallbackData memory extra = abi.decode(
+            data,
+            (IUniswapV3Pool.CallbackData)
+        );
+        IERC20(extra.token0).transferFrom(extra.payer, msg.sender, amount0);
+        IERC20(extra.token1).transferFrom(extra.payer, msg.sender, amount1);
     }
 }

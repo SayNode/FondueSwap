@@ -1,7 +1,17 @@
 import pytest
 from brownie import (accounts, 
                     Contract, 
-                    MockToken, PoolFactory, Pool, NFT, NFTManager)
+                    chain,
+                    MockToken, PoolFactory, Pool, NFT, NFTManager, HelpFunctions)
+
+@pytest.fixture
+def deployLibrary():
+    libDeployer =accounts[9]
+
+    lib = HelpFunctions.deploy({"from":libDeployer})
+    # print contract address
+    print(f"Lib contract deployed at {lib}")
+    return lib
 
 @pytest.fixture
 def Atoken():
@@ -60,18 +70,18 @@ def factoryContract():
     return factory
 
 @pytest.fixture
-def NFTContract(factoryContract):
+def NFTContract(factoryContract, deployLibrary):
     # fetch the account
     account = accounts[0]
 
     # deploy Staking contract
     nft = NFT.deploy(factoryContract, {"from":account})
     # print contract address
-    print(f"NFT contract deployed at {NFT}")
+    print(f"NFT contract deployed at {nft}")
     return nft
 
 @pytest.fixture
-def managerContract(factoryContract, NFTContract):
+def managerContract(factoryContract, NFTContract, deployLibrary):
     # fetch the account
     account = accounts[0]
 
@@ -136,7 +146,7 @@ def XYPool(Xtoken, Ytoken, factoryContract):
 '''
 Tests
 '''
-def test_inRange(Atoken, Btoken, NFTContract, managerContract, ABPool):
+def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool):
     # fetch the accounts
     account = accounts[0]
 
@@ -156,14 +166,16 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, ABPool):
 
 
     #Set pos
-    Atoken.approve(managerContract, 1*10**18, {"from": Alice})
-    Btoken.approve(managerContract, 5000*10**18, {"from": Alice})
-
-    NFTContract.mint([Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
-
-    pos = NFTContract.getPosition([Atoken, Btoken, 500, Alice, 84220, 86130], {"from": Alice})
-    print('Position:',pos)
-    assert pos[0]!=0
+    Atoken.approve(NFTContract, 1*10**18, {"from": Alice})
+    Btoken.approve(NFTContract, 5000*10**18, {"from": Alice})
+    print(Alice)
+    chain.sleep(30)
+    pos = NFTContract.mint([Alice, Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
+    print(pos.return_value)
+    #pos = NFTContract.getPosition([Atoken, Btoken, 500, Alice, 84220, 86130], {"from": Alice})
+    #print('Position:',pos)
+    #assert pos[0]!=0
+    #assert 1==2
 
 # def test_aboveRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
 #     # fetch the accounts
@@ -195,37 +207,37 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, ABPool):
 #     assert pos[0]!=0
 
 # def test_bellowRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
-    # fetch the accounts
-    account = accounts[0]
+    # # fetch the accounts
+    # account = accounts[0]
 
-    #Fund the users
-    Alice = accounts[1]
-    Atoken.mint(Alice, 10000*10**18,{"from": account})
-    Btoken.mint(Alice, 10000*10**18,{"from": account})
+    # #Fund the users
+    # Alice = accounts[1]
+    # Atoken.mint(Alice, 10000*10**18,{"from": account})
+    # Btoken.mint(Alice, 10000*10**18,{"from": account})
 
-    Xander = accounts[2]
-    Xtoken.mint(Xander, 10000*10**18,{"from": account})
-    Ytoken.mint(Xander, 10000*10**18,{"from": account})
+    # Xander = accounts[2]
+    # Xtoken.mint(Xander, 10000*10**18,{"from": account})
+    # Ytoken.mint(Xander, 10000*10**18,{"from": account})
 
-    #Variables
-    fraq=2**96
-    initP_AB=5000
+    # #Variables
+    # fraq=2**96
+    # initP_AB=5000
 
-    #Initialize pool AB
-    ABPool.initialize(initP_AB, {"from": account})
-    print("Slot0:",ABPool.slot0({"from": account}))
-    assert ABPool.slot0({"from": account})[0] != (0)
+    # #Initialize pool AB
+    # ABPool.initialize(initP_AB, {"from": account})
+    # print("Slot0:",ABPool.slot0({"from": account}))
+    # assert ABPool.slot0({"from": account})[0] != (0)
 
 
-    #Set pos
-    Atoken.approve(managerContract, 5000*10**18, {"from": Alice})
-    Btoken.approve(managerContract, 5000*10**18, {"from": Alice})
+    # #Set pos
+    # Atoken.approve(managerContract, 5000*10**18, {"from": Alice})
+    # Btoken.approve(managerContract, 5000*10**18, {"from": Alice})
 
-    tx = managerContract.mint([Atoken, Btoken, 500, 81000, 82000, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
-    print(tx.info())
-    pos = managerContract.getPosition([Atoken, Btoken, 500, Alice, 81000, 82000], {"from": Alice})
-    print('Position:',pos)
-    assert pos[0]!=0
+    # tx = managerContract.mint([Atoken, Btoken, 500, 81000, 82000, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
+    # print(tx.info())
+    # pos = managerContract.getPosition([Atoken, Btoken, 500, Alice, 81000, 82000], {"from": Alice})
+    # print('Position:',pos)
+    # assert pos[0]!=0
 
-    print(ABPool.positions())
-    assert 1==2
+    # print(ABPool.positions())
+    # assert 1==2

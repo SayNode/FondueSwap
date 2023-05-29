@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.14;
 
+import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
-
+import "./interfaces/IUniswapV3Manager.sol";
+import "./lib/LiquidityMath.sol";
+import "./lib/Path.sol";
 import "./lib/PoolAddress.sol";
+import "./lib/TickMath.sol";
+import "./lib/console.sol";
 
 library HelpFunctions {
+    using Path for bytes;
     error WrongToken();
     error PositionNotCleared();
     error NotAuthorized();
@@ -54,7 +60,7 @@ library HelpFunctions {
         );
 
         (amount0, amount1) = params.pool.mint(
-            address(this),
+            msg.sender,
             params.lowerTick,
             params.upperTick,
             liquidity,
