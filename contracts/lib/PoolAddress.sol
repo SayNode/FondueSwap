@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.14;
 
-import "../UniswapV3Pool.sol";
+import "../Pool.sol";
 
 library PoolAddress {
     function computeAddress(
@@ -20,7 +20,7 @@ library PoolAddress {
                             hex"ff",
                             factory,
                             keccak256(abi.encodePacked(token0, token1, fee)),
-                            keccak256(type(UniswapV3Pool).creationCode)
+                            keccak256(type(Pool).creationCode)
                         )
                     )
                 )

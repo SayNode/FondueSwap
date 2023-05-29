@@ -2,9 +2,7 @@ import pytest
 
 from brownie import (accounts, 
                     Contract, 
-                    MockToken, 
-                    UniswapV3Factory, UniswapV3Pool, 
-                    UniswapV3ManagerMint, UniswapV3ManagerSwaps)
+                    MockToken, PoolFactory, Pool, NFT, NFTManager)
 
 @pytest.fixture
 def Atoken():

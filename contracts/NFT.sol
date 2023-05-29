@@ -36,9 +36,7 @@ contract NFT is ERC721 {
         );
     }
 
-    constructor(
-        address factoryAddress
-    ) ERC721("UniswapV3 NFT Positions", "UNIV3") {
+    constructor(address factoryAddress) ERC721("NFT Positions", "PosNFT") {
         factory = factoryAddress;
     }
 

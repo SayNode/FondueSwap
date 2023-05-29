@@ -5,7 +5,7 @@ import "./Pool.sol";
 
 import "./interfaces/IUniswapV3PoolDeployer.sol";
 
-contract UniswapV3Factory is IUniswapV3PoolDeployer {
+contract PoolFactory is IUniswapV3PoolDeployer {
     error PoolAlreadyExists();
     error ZeroAddressNotAllowed();
     error TokensMustBeDifferent();

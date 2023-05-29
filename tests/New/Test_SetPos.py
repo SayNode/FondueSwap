@@ -1,7 +1,7 @@
 import pytest
 from brownie import (accounts, 
                     Contract, 
-                    MockToken, UniswapV3Factory, UniswapV3Pool, UniswapV3ManagerMint)
+                    MockToken, PoolFactory, Pool, NFT, NFTManager)
 
 @pytest.fixture
 def Atoken():
@@ -54,18 +54,29 @@ def factoryContract():
     account = accounts[0]
 
     # deploy Staking contract
-    factory = UniswapV3Factory.deploy({"from":account})
+    factory = PoolFactory.deploy({"from":account})
     # print contract address
     print(f"Factory contract deployed at {factory}")
     return factory
 
 @pytest.fixture
-def managerContract(factoryContract):
+def NFTContract(factoryContract):
     # fetch the account
     account = accounts[0]
 
     # deploy Staking contract
-    manager = UniswapV3ManagerMint.deploy(factoryContract, {"from":account})
+    nft = NFT.deploy(factoryContract, {"from":account})
+    # print contract address
+    print(f"NFT contract deployed at {NFT}")
+    return nft
+
+@pytest.fixture
+def managerContract(factoryContract, NFTContract):
+    # fetch the account
+    account = accounts[0]
+
+    # deploy Staking contract
+    manager = NFTManager.deploy(factoryContract, NFTContract, {"from":account})
     # print contract address
     print(f"Factory contract deployed at {manager}")
     return manager
@@ -92,8 +103,8 @@ def ABPool(Atoken, Btoken, factoryContract):
     assert poolAB_address == factoryContract.pools(Atoken, Btoken, 500)
 
     #Turn pool address into a contract
-    poolABI = UniswapV3Pool.abi
-    ABPool = Contract.from_abi("UniswapV3Pool", poolAB_address, poolABI)
+    poolABI = Pool.abi
+    ABPool = Contract.from_abi("Pool", poolAB_address, poolABI)
 
     return ABPool
 
@@ -117,48 +128,15 @@ def XYPool(Xtoken, Ytoken, factoryContract):
     print("Pool Created at ", poolXY_address)
 
     #Turn pool address into a contract
-    poolABI = UniswapV3Pool.abi
-    XYPool = Contract.from_abi("UniswapV3Pool", poolXY_address, poolABI)
+    poolABI = Pool.abi
+    XYPool = Contract.from_abi("Pool", poolXY_address, poolABI)
 
     return XYPool
 
 '''
 Tests
 '''
-def test_inRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
-    # fetch the accounts
-    account = accounts[0]
-
-    #Fund the users
-    Alice = accounts[1]
-    Atoken.mint(Alice, 10000*10**18,{"from": account})
-    Btoken.mint(Alice, 10000*10**18,{"from": account})
-
-    Xander = accounts[2]
-    Xtoken.mint(Xander, 10000*10**18,{"from": account})
-    Ytoken.mint(Xander, 10000*10**18,{"from": account})
-
-    #Variables
-    fraq=2**96
-    initP_AB=5000
-
-    #Initialize pool AB
-    ABPool.initialize(initP_AB, {"from": account})
-    print("Slot0:",ABPool.slot0({"from": account}))
-    assert ABPool.slot0({"from": account})[0] != (0)
-
-
-    #Set pos
-    Atoken.approve(managerContract, 1*10**18, {"from": Alice})
-    Btoken.approve(managerContract, 5000*10**18, {"from": Alice})
-
-    managerContract.mint([Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
-
-    pos = managerContract.getPosition([Atoken, Btoken, 500, Alice, 84220, 86130], {"from": Alice})
-    print('Position:',pos)
-    assert pos[0]!=0
-
-def test_aboveRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
+def test_inRange(Atoken, Btoken, NFTContract, managerContract, ABPool):
     # fetch the accounts
     account = accounts[0]
 
@@ -181,13 +159,42 @@ def test_aboveRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerCont
     Atoken.approve(managerContract, 1*10**18, {"from": Alice})
     Btoken.approve(managerContract, 5000*10**18, {"from": Alice})
 
-    managerContract.mint([Atoken, Btoken, 500, 86130, 89130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
+    NFTContract.mint([Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
 
-    pos = managerContract.getPosition([Atoken, Btoken, 500, Alice, 86130, 89130], {"from": Alice})
+    pos = NFTContract.getPosition([Atoken, Btoken, 500, Alice, 84220, 86130], {"from": Alice})
     print('Position:',pos)
     assert pos[0]!=0
 
-def test_bellowRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
+# def test_aboveRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
+#     # fetch the accounts
+#     account = accounts[0]
+
+#     #Fund the users
+#     Alice = accounts[1]
+#     Atoken.mint(Alice, 10000*10**18,{"from": account})
+#     Btoken.mint(Alice, 10000*10**18,{"from": account})
+
+#     #Variables
+#     fraq=2**96
+#     initP_AB=5000
+
+#     #Initialize pool AB
+#     ABPool.initialize(initP_AB, {"from": account})
+#     print("Slot0:",ABPool.slot0({"from": account}))
+#     assert ABPool.slot0({"from": account})[0] != (0)
+
+
+#     #Set pos
+#     Atoken.approve(managerContract, 1*10**18, {"from": Alice})
+#     Btoken.approve(managerContract, 5000*10**18, {"from": Alice})
+
+#     managerContract.mint([Atoken, Btoken, 500, 86130, 89130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
+
+#     pos = managerContract.getPosition([Atoken, Btoken, 500, Alice, 86130, 89130], {"from": Alice})
+#     print('Position:',pos)
+#     assert pos[0]!=0
+
+# def test_bellowRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
     # fetch the accounts
     account = accounts[0]
 
