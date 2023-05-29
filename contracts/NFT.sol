@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./HelpFunctions.sol";
 
 import "./interfaces/IUniswapV3Pool.sol";
+
 import "./lib/NFTRenderer.sol";
 
 contract NFT is ERC721 {

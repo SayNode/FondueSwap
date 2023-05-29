@@ -2,6 +2,7 @@
 pragma solidity ^0.8.14;
 
 import "./interfaces/IUniswapV3Pool.sol";
+
 import "./lib/PoolAddress.sol";
 
 library HelpFunctions {
@@ -23,16 +24,6 @@ library HelpFunctions {
         uint256 amount1Min;
     }
 
-    struct TokenPosition {
-        address pool;
-        int24 lowerTick;
-        int24 upperTick;
-    }
-    ////////////////////////////////////////////////////////////////////////////
-    //
-    // INTERNAL
-    //
-    ////////////////////////////////////////////////////////////////////////////
     struct AddLiquidityInternalParams {
         IUniswapV3Pool pool;
         int24 lowerTick;
@@ -41,6 +32,12 @@ library HelpFunctions {
         uint256 amount1Desired;
         uint256 amount0Min;
         uint256 amount1Min;
+    }
+
+    struct TokenPosition {
+        address pool;
+        int24 lowerTick;
+        int24 upperTick;
     }
 
     function _addLiquidity(

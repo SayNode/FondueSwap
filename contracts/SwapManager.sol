@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.14;
 
+import "./PoolFactory.sol";
+
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
 import "./interfaces/IUniswapV3Manager.sol";
-import "./UniswapV3Factory.sol";
+
 import "./lib/LiquidityMath.sol";
 import "./lib/Path.sol";
 import "./lib/PoolAddress.sol";
 import "./lib/TickMath.sol";
 import "./lib/console.sol";
 
-contract UniswapV3ManagerSwaps is IUniswapV3Manager {
+contract SwapManager is IUniswapV3Manager {
     event Log(string message, uint24 data);
     using Path for bytes;
 
@@ -20,14 +22,16 @@ contract UniswapV3ManagerSwaps is IUniswapV3Manager {
 
     address public immutable factory;
 
-    UniswapV3Factory fact;
+    PoolFactory fact;
 
     constructor(address factory_) {
         factory = factory_;
-        fact = UniswapV3Factory(factory);
+        fact = PoolFactory(factory);
     }
 
-    function getPosition(GetPositionParams calldata params)
+    function getPosition(
+        GetPositionParams calldata params
+    )
         public
         view
         returns (
@@ -57,10 +61,9 @@ contract UniswapV3ManagerSwaps is IUniswapV3Manager {
         );
     }
 
-    function swapSingle(SwapSingleParams calldata params)
-        public
-        returns (uint256 amountOut)
-    {
+    function swapSingle(
+        SwapSingleParams calldata params
+    ) public returns (uint256 amountOut) {
         amountOut = _swap(
             params.amountIn,
             msg.sender,

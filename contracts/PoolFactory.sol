@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.14;
 
+import "./Pool.sol";
+
 import "./interfaces/IUniswapV3PoolDeployer.sol";
-import "./UniswapV3Pool.sol";
 
 contract UniswapV3Factory is IUniswapV3PoolDeployer {
     error PoolAlreadyExists();
@@ -53,9 +54,7 @@ contract UniswapV3Factory is IUniswapV3PoolDeployer {
         });
 
         pool = address(
-            new UniswapV3Pool{
-                salt: keccak256(abi.encodePacked(tokenX, tokenY, fee))
-            }()
+            new Pool{salt: keccak256(abi.encodePacked(tokenX, tokenY, fee))}()
         );
 
         delete parameters;

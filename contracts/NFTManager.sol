@@ -2,8 +2,9 @@
 pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "./interfaces/INFT.sol";
+import "./HelpFunctions.sol";
 
+import "./interfaces/INFT.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
 import "./lib/LiquidityMath.sol";
@@ -11,7 +12,7 @@ import "./lib/NFTRenderer.sol";
 import "./lib/PoolAddress.sol";
 import "./lib/TickMath.sol";
 
-contract UniswapV3NFTManager {
+contract NFTManager {
     error NotAuthorized();
     error NotEnoughLiquidity();
     error PositionNotCleared();
@@ -31,12 +32,6 @@ contract UniswapV3NFTManager {
         uint256 amount0,
         uint256 amount1
     );
-
-    struct TokenPosition {
-        address pool;
-        int24 lowerTick;
-        int24 upperTick;
-    }
 
     uint256 public totalSupply;
 
@@ -59,19 +54,6 @@ contract UniswapV3NFTManager {
         nft = INFT(nftAddress);
     }
 
-    struct MintParams {
-        address recipient;
-        address tokenA;
-        address tokenB;
-        uint24 fee;
-        int24 lowerTick;
-        int24 upperTick;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
-
     struct AddLiquidityParams {
         uint256 tokenId;
         uint256 amount0Desired;
@@ -86,16 +68,13 @@ contract UniswapV3NFTManager {
         (address _pool, int24 _lowerTick, int24 _upperTick) = nft
             .tokenIDtoPosition(params.tokenId);
 
-        TokenPosition memory tokenPosition = TokenPosition(
-            _pool,
-            _lowerTick,
-            _upperTick
-        );
+        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
+            .TokenPosition(_pool, _lowerTick, _upperTick);
 
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
-        (liquidity, amount0, amount1) = _addLiquidity(
-            AddLiquidityInternalParams({
+        (liquidity, amount0, amount1) = HelpFunctions._addLiquidity(
+            HelpFunctions.AddLiquidityInternalParams({
                 pool: IUniswapV3Pool(tokenPosition.pool),
                 lowerTick: tokenPosition.lowerTick,
                 upperTick: tokenPosition.upperTick,
@@ -125,18 +104,15 @@ contract UniswapV3NFTManager {
         (address _pool, int24 _lowerTick, int24 _upperTick) = nft
             .tokenIDtoPosition(params.tokenId);
 
-        TokenPosition memory tokenPosition = TokenPosition(
-            _pool,
-            _lowerTick,
-            _upperTick
-        );
+        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
+            .TokenPosition(_pool, _lowerTick, _upperTick);
 
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 
         (uint128 availableLiquidity, , , , ) = pool.positions(
-            poolPositionKey(tokenPosition)
+            HelpFunctions._poolPositionKey(tokenPosition)
         );
         if (params.liquidity > availableLiquidity) revert NotEnoughLiquidity();
 
@@ -170,11 +146,8 @@ contract UniswapV3NFTManager {
         (address _pool, int24 _lowerTick, int24 _upperTick) = nft
             .tokenIDtoPosition(params.tokenId);
 
-        TokenPosition memory tokenPosition = TokenPosition(
-            _pool,
-            _lowerTick,
-            _upperTick
-        );
+        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
+            .TokenPosition(_pool, _lowerTick, _upperTick);
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
@@ -185,95 +158,6 @@ contract UniswapV3NFTManager {
             tokenPosition.upperTick,
             params.amount0,
             params.amount1
-        );
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    //
-    // INTERNAL
-    //
-    ////////////////////////////////////////////////////////////////////////////
-    struct AddLiquidityInternalParams {
-        IUniswapV3Pool pool;
-        int24 lowerTick;
-        int24 upperTick;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
-
-    function _addLiquidity(
-        AddLiquidityInternalParams memory params
-    ) internal returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
-        (uint160 sqrtPriceX96, , , , ) = params.pool.slot0();
-
-        liquidity = LiquidityMath.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtRatioAtTick(params.lowerTick),
-            TickMath.getSqrtRatioAtTick(params.upperTick),
-            params.amount0Desired,
-            params.amount1Desired
-        );
-
-        (amount0, amount1) = params.pool.mint(
-            address(this),
-            params.lowerTick,
-            params.upperTick,
-            liquidity,
-            abi.encode(
-                IUniswapV3Pool.CallbackData({
-                    token0: params.pool.token0(),
-                    token1: params.pool.token1(),
-                    payer: msg.sender
-                })
-            )
-        );
-
-        if (amount0 < params.amount0Min || amount1 < params.amount1Min)
-            revert SlippageCheckFailed(amount0, amount1);
-    }
-
-    function getPool(
-        address token0,
-        address token1,
-        uint24 fee
-    ) internal view returns (IUniswapV3Pool pool) {
-        (token0, token1) = token0 < token1
-            ? (token0, token1)
-            : (token1, token0);
-        pool = IUniswapV3Pool(
-            PoolAddress.computeAddress(factory, token0, token1, fee)
-        );
-    }
-
-    /*
-        Returns position ID within a pool
-    */
-    function poolPositionKey(
-        TokenPosition memory position
-    ) internal view returns (bytes32 key) {
-        key = keccak256(
-            abi.encodePacked(
-                address(this),
-                position.lowerTick,
-                position.upperTick
-            )
-        );
-    }
-
-    /*
-        Returns position ID within the NFT manager
-    */
-    function positionKey(
-        TokenPosition memory position
-    ) internal pure returns (bytes32 key) {
-        key = keccak256(
-            abi.encodePacked(
-                address(position.pool),
-                position.lowerTick,
-                position.upperTick
-            )
         );
     }
 }

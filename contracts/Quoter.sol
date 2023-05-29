@@ -2,11 +2,12 @@
 pragma solidity ^0.8.14;
 
 import "./interfaces/IUniswapV3Pool.sol";
+
 import "./lib/Path.sol";
 import "./lib/PoolAddress.sol";
 import "./lib/TickMath.sol";
 
-contract UniswapV3Quoter {
+contract Quoter {
     using Path for bytes;
 
     struct QuoteSingleParams {
@@ -23,7 +24,10 @@ contract UniswapV3Quoter {
         factory = factory_;
     }
 
-    function quote(bytes memory path, uint256 amountIn)
+    function quote(
+        bytes memory path,
+        uint256 amountIn
+    )
         public
         returns (
             uint256 amountOut,
@@ -67,13 +71,11 @@ contract UniswapV3Quoter {
         }
     }
 
-    function quoteSingle(QuoteSingleParams memory params)
+    function quoteSingle(
+        QuoteSingleParams memory params
+    )
         public
-        returns (
-            uint256 amountOut,
-            uint160 sqrtPriceX96After,
-            int24 tickAfter
-        )
+        returns (uint256 amountOut, uint160 sqrtPriceX96After, int24 tickAfter)
     {
         IUniswapV3Pool pool = getPool(
             params.tokenIn,

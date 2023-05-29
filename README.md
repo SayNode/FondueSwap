@@ -6,17 +6,12 @@
 
 # TO DO
 
-## UniswapV3ManagerMint
-
-- See if I can eliminate it fully now that the substitute is almost done
-
 ## UniswapV3ManagerSwaps
 
 - Make that the sqrtPriceLimitX96 is calculated within the contract with acertain eprcentage of price slippage
 
 ## NFT
 
-- Reduce contract size
 - In mint, do it so it receives the price and not the tick. We can do this using the function getTickAtSqrtRatio in the TickMath library
 
 ## IMPORTANT - TO DO
@@ -71,3 +66,5 @@ with
         );
 
 - Created the swap and mint frontends (beta)
+- Reduce contract size
+- UniswapV3ManagerMint eliminated
