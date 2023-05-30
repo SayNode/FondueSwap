@@ -143,6 +143,17 @@ def XYPool(Xtoken, Ytoken, factoryContract):
 
     return XYPool
 
+
+def set_pos(NFTContract, minter, Atoken, Btoken, fee, lowerTick, upperTick, amountA, amountB):
+    #First alice position
+    Atoken.approve(NFTContract, amountA, {"from": minter})
+    Btoken.approve(NFTContract, amountB, {"from": minter})
+
+    chain.sleep(30)
+    pos = NFTContract.mint([minter, Atoken, Btoken, fee, lowerTick, upperTick, amountA, amountB, 0, 0], {"from": minter} )
+    chain.sleep(30)
+    return pos
+    
 '''
 Tests the minting, checking ownership and data, and burning positions within range
 '''
@@ -152,8 +163,8 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, AB
 
     #Fund the users
     Alice = accounts[1]
-    Atoken.mint(Alice, 100000*10**18,{"from": account})
-    Btoken.mint(Alice, 100000*10**18,{"from": account})
+    Atoken.mint(Alice, 100_000*10**18,{"from": account})
+    Btoken.mint(Alice, 100_000*10**18,{"from": account})
 
     #Variables
     fraq=2**96
@@ -163,15 +174,9 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, AB
     ABPool.initialize(initP_AB, {"from": account})
     print("Slot0:",ABPool.slot0({"from": account}))
     assert ABPool.slot0({"from": account})[0] != (0)
-
-
-    #First alice position
-    Atoken.approve(NFTContract, 1*10**18, {"from": Alice})
-    Btoken.approve(NFTContract, 5000*10**18, {"from": Alice})
-
-    chain.sleep(30)
-    pos = NFTContract.mint([Alice, Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
-    chain.sleep(30)
+    
+    #Alice: First position
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18)
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
     assert tokens == 1
@@ -180,47 +185,62 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, AB
     ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
     assert ownedTokens[0] == 0
     assert len(ownedTokens) == 1
-    print('Tokens of Alice:',ownedTokens)
+    print('Tokens of minter:',ownedTokens)
 
     pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
     print('Position:',pos)
     assert pos == (ABPool, 84220, 86130)
 
-    #Second Alice position
-    Atoken.approve(NFTContract, 0.11*10**18, {"from": Alice})
-    Btoken.approve(NFTContract, 500*10**18, {"from": Alice})
 
-    chain.sleep(30)
-    pos = NFTContract.mint([Alice, Atoken, Btoken, 500, 82220, 87130, 0.1*10**18, 500*10**18, 0, 0], {"from": Alice} )
-    chain.sleep(30)
+    #Alice: Second position
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 82220, 87130, 0.1*10**18, 500*10**18)
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 81220, 88130, 0.1*10**18, 500*10**18)
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84520, 85130, 0.01*10**18, 50*10**18)
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 82320, 83130, 1*10**18, 5000*10**18)
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 2
+    assert tokens == 5
     print('Total token Supply:',tokens)
 
     ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
     print('Tokens of Alice:',ownedTokens)
-    assert ownedTokens == (0,1)
-    assert len(ownedTokens) == 2
-
+    assert ownedTokens == (0,1,2,3,4)
+    assert len(ownedTokens) == 5
 
     pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
     assert pos == (ABPool, 84220, 86130)
     second_pos = NFTContract.tokenIDtoPosition(1, {"from": Alice})
     assert second_pos == (ABPool, 82220, 87130)
+    third_pos = NFTContract.tokenIDtoPosition(2, {"from": Alice})
+    assert third_pos == (ABPool, 81220, 88130)
+    fourth_pos = NFTContract.tokenIDtoPosition(3, {"from": Alice})
+    assert fourth_pos == (ABPool, 84520, 85130)
+    fifth_pos = NFTContract.tokenIDtoPosition(4, {"from": Alice})
+    assert fifth_pos == (ABPool, 82320, 83130)
 
-    #Burn first position
+    #Burn token 0 position
     NFTContract.burn(0,{"from": Alice})
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 1
+    assert tokens == 4
     print('Total token Supply:',tokens)
 
     ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
     print('Tokens of Alice:',ownedTokens)
-    assert ownedTokens[0] == 1
-    assert len(ownedTokens) == 1
+    assert ownedTokens == (1,2,3,4)
+    assert len(ownedTokens) == 4
 
+    #Burn token 2 position
+    NFTContract.burn(2,{"from": Alice})
+
+    tokens = NFTContract.totalSupply( {"from": Alice} )
+    assert tokens == 3
+    print('Total token Supply:',tokens)
+
+    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
+    print('Tokens of Alice:',ownedTokens)
+    assert ownedTokens == (1,3,4)
+    assert len(ownedTokens) == 3
 
 # def test_aboveRange(Atoken, Btoken, Xtoken, Ytoken, factoryContract, managerContract, ABPool, XYPool):
 #     # fetch the accounts
