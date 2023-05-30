@@ -31,6 +31,7 @@ contract NFT is ERC721 {
 
     mapping(uint256 => HelpFunctions.TokenPosition) public positions;
     mapping(address => uint256[]) public userOwnedPositions;
+    mapping(uint256 => bool) public burnedIds;
 
     function tokenIDtoPosition(
         uint256 tokenID
@@ -129,6 +130,7 @@ contract NFT is ERC721 {
             revert PositionNotCleared();
 
         delete positions[tokenId];
+        burnedIds[tokenId] = true;
         _burn(tokenId);
         totalSupply--;
     }
@@ -167,13 +169,16 @@ contract NFT is ERC721 {
 
             // We count on the fact that all tokens have IDs starting at 0 and increasing
             // sequentially up to the totalSupply count.
-            uint256 tokId;
+            uint256 tokenId;
 
-            for (tokId = 0; tokId < totalTokens; tokId++) {
-                if (ownerOf(tokId) == _owner) {
-                    result[resultIndex] = tokId;
-                    resultIndex++;
+            while (resultIndex < totalTokens) {
+                if (burnedIds[tokenId] != true) {
+                    if (ownerOf(tokenId) == _owner) {
+                        result[resultIndex] = tokenId;
+                        resultIndex++;
+                    }
                 }
+                tokenId++;
             }
 
             return result;
