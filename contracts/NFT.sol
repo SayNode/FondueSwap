@@ -3,7 +3,6 @@ pragma solidity ^0.8.14;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./HelpFunctions.sol";
-import "./lib/console.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
@@ -31,6 +30,7 @@ contract NFT is ERC721 {
     address public immutable factory;
 
     mapping(uint256 => HelpFunctions.TokenPosition) public positions;
+    mapping(address => uint256[]) public userOwnedPositions;
 
     function tokenIDtoPosition(
         uint256 tokenID
@@ -93,6 +93,7 @@ contract NFT is ERC721 {
             );
 
         tokenId = nextTokenId++;
+        console.log(tokenId);
         _mint(params.recipient, tokenId);
         totalSupply++;
 
@@ -104,6 +105,7 @@ contract NFT is ERC721 {
             });
 
         positions[tokenId] = tokenPosition;
+        userOwnedPositions[msg.sender].push(tokenId);
 
         emit AddLiquidity(tokenId, liquidity, amount0, amount1);
     }
@@ -115,8 +117,7 @@ contract NFT is ERC721 {
             !(isApprovedForAll(owner, msg.sender)) &&
             getApproved(tokenId) != msg.sender
         ) revert NotAuthorized();
-        // HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        // HelpFunctions.helpBurn(tokenPosition);
+
         HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
@@ -143,5 +144,39 @@ contract NFT is ERC721 {
         );
         IERC20(extra.token0).transferFrom(extra.payer, msg.sender, amount0);
         IERC20(extra.token1).transferFrom(extra.payer, msg.sender, amount1);
+    }
+
+    /// @notice Returns a list of all Liquidity Token IDs assigned to an address.
+    /// @param _owner The owner whose Kitties we are interested in.
+    /// @dev This method MUST NEVER be called by smart contract code. First, it's fairly
+    ///  expensive (it walks the entire token array looking for tokens belonging to owner),
+    ///  but it also returns a dynamic array, which is only supported for web3 calls, and
+    ///  not contract-to-contract calls.
+    function tokensOfOwner(
+        address _owner
+    ) external view returns (uint256[] memory ownerTokens) {
+        uint256 tokenCount = balanceOf(_owner);
+
+        if (tokenCount == 0) {
+            // Return an empty array
+            return new uint256[](0);
+        } else {
+            uint256[] memory result = new uint256[](tokenCount);
+            uint256 totalTokens = totalSupply;
+            uint256 resultIndex = 0;
+
+            // We count on the fact that all tokens have IDs starting at 0 and increasing
+            // sequentially up to the totalSupply count.
+            uint256 tokId;
+
+            for (tokId = 0; tokId < totalTokens; tokId++) {
+                if (ownerOf(tokId) == _owner) {
+                    result[resultIndex] = tokId;
+                    resultIndex++;
+                }
+            }
+
+            return result;
+        }
     }
 }

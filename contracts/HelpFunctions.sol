@@ -11,7 +11,7 @@ import "./lib/TickMath.sol";
 import "./lib/console.sol";
 
 library HelpFunctions {
-    using Path for bytes;
+
     error WrongToken();
     error PositionNotCleared();
     error NotAuthorized();

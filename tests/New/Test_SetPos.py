@@ -171,9 +171,14 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, AB
     print(Alice)
     chain.sleep(30)
     pos = NFTContract.mint([Alice, Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18, 0, 0], {"from": Alice} )
-    print(pos.return_value)
-    #pos = NFTContract.getPosition([Atoken, Btoken, 500, Alice, 84220, 86130], {"from": Alice})
-    #print('Position:',pos)
+    chain.sleep(30)
+    tokens = NFTContract.totalSupply( {"from": Alice} )
+    print('Total token Supply:',tokens)
+    tokenOwner =NFTContract.tokensOfOwner(Alice, {"from": Alice} )
+    print('Tokens of Alice:',tokenOwner)
+    pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
+    print('Position:',pos)
+    assert 1==2
     #assert pos[0]!=0
     #assert 1==2
 
