@@ -80,21 +80,20 @@ contract NFT is ERC721 {
             params.fee
         );
 
-        (uint128 liquidity, uint256 amount0, uint256 amount1) = HelpFunctions
-            ._addLiquidity(
-                HelpFunctions.AddLiquidityInternalParams({
-                    pool: pool,
-                    lowerTick: params.lowerTick,
-                    upperTick: params.upperTick,
-                    amount0Desired: params.amount0Desired,
-                    amount1Desired: params.amount1Desired,
-                    amount0Min: params.amount0Min,
-                    amount1Min: params.amount1Min
-                })
-            );
+        (uint128 liquidity, uint256 amount0, uint256 amount1) = _addLiquidity(
+            HelpFunctions.AddLiquidityInternalParams({
+                pool: pool,
+                lowerTick: params.lowerTick,
+                upperTick: params.upperTick,
+                amount0Desired: params.amount0Desired,
+                amount1Desired: params.amount1Desired,
+                amount0Min: params.amount0Min,
+                amount1Min: params.amount1Min
+            })
+        );
 
         tokenId = nextTokenId++;
-        console.log(tokenId);
+
         _mint(params.recipient, tokenId);
         totalSupply++;
 
@@ -124,7 +123,7 @@ contract NFT is ERC721 {
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
         (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
-            .positions(HelpFunctions._poolPositionKey(tokenPosition));
+            .positions(_poolPositionKey(tokenPosition));
 
         if (liquidity > 0 || tokensOwed0 > 0 || tokensOwed1 > 0)
             revert PositionNotCleared();
@@ -183,5 +182,51 @@ contract NFT is ERC721 {
 
             return result;
         }
+    }
+
+    /*
+        Returns position ID within a pool
+    */
+    function _poolPositionKey(
+        HelpFunctions.TokenPosition memory position
+    ) internal view returns (bytes32 key) {
+        key = keccak256(
+            abi.encodePacked(
+                address(this),
+                position.lowerTick,
+                position.upperTick
+            )
+        );
+    }
+
+    function _addLiquidity(
+        HelpFunctions.AddLiquidityInternalParams memory params
+    ) internal returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
+        (uint160 sqrtPriceX96, , , , ) = params.pool.slot0();
+
+        liquidity = LiquidityMath.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtRatioAtTick(params.lowerTick),
+            TickMath.getSqrtRatioAtTick(params.upperTick),
+            params.amount0Desired,
+            params.amount1Desired
+        );
+
+        (amount0, amount1) = params.pool.mint(
+            address(this),
+            params.lowerTick,
+            params.upperTick,
+            liquidity,
+            abi.encode(
+                IUniswapV3Pool.CallbackData({
+                    token0: params.pool.token0(),
+                    token1: params.pool.token1(),
+                    payer: msg.sender
+                })
+            )
+        );
+
+        if (amount0 < params.amount0Min || amount1 < params.amount1Min)
+            revert HelpFunctions.SlippageCheckFailed(amount0, amount1);
     }
 }

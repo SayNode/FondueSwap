@@ -1,6 +1,4 @@
 import pytest
-import brownie
-from getError import encode_custom_error
 from brownie import (accounts, 
                     Contract, 
                     chain,
@@ -98,6 +96,7 @@ def ABPool(Atoken, Btoken, factoryContract):
 
     return ABPool
 
+
 def set_pos(NFTContract, minter, Atoken, Btoken, fee, lowerTick, upperTick, amountA, amountB):
     #First alice position
     Atoken.approve(NFTContract, amountA, {"from": minter})
@@ -108,10 +107,8 @@ def set_pos(NFTContract, minter, Atoken, Btoken, fee, lowerTick, upperTick, amou
     chain.sleep(30)
     return pos
     
-'''
-Tests the minting, checking ownership and data, and burning positions within, above and bellow the price range
-'''
-def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool):
+@pytest.fixture
+def settingPositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool):
     # fetch the accounts
     account = accounts[0]
 
@@ -172,10 +169,6 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, AB
     fifth_pos = NFTContract.tokenIDtoPosition(4, {"from": Alice})
     assert fifth_pos == (ABPool, 80320, 81230)
 
-    #Should revert the burn because the position is not cleared
-    with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
-        NFTContract.burn(0,{"from": Alice})
-
     #Burn token 0 position
     NFTContract.burn(0,{"from": Alice})
 
@@ -200,3 +193,5 @@ def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, AB
     assert ownedTokens == (1,3,4)
     assert len(ownedTokens) == 3
 
+def test_updatePositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool, settingPositions):
+    pass

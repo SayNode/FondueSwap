@@ -286,7 +286,7 @@ contract Pool is IUniswapV3Pool {
         uint256 balance1Before;
         if (amount0 > 0) balance0Before = balance0();
         if (amount1 > 0) balance1Before = balance1();
-        console.log("\n----------------", msg.sender); ////////////////////////////////
+
         IUniswapV3MintCallback(msg.sender).uniswapV3MintCallback(
             amount0,
             amount1,
