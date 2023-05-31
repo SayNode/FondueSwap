@@ -4,7 +4,7 @@ from getError import encode_custom_error
 from brownie import (accounts, 
                     Contract, 
                     chain,
-                    MockToken, PoolFactory, Pool, NFT, NFTManager, HelpFunctions)
+                    MockToken, PoolFactory, Pool, NFT, HelpFunctions)
 
 @pytest.fixture
 def deployLibrary():
@@ -61,17 +61,6 @@ def NFTContract(factoryContract, deployLibrary):
     return nft
 
 @pytest.fixture
-def managerContract(factoryContract, NFTContract, deployLibrary):
-    # fetch the account
-    account = accounts[0]
-
-    # deploy Staking contract
-    manager = NFTManager.deploy(factoryContract, NFTContract, {"from":account})
-    # print contract address
-    print(f"Factory contract deployed at {manager}")
-    return manager
-
-@pytest.fixture
 def ABPool(Atoken, Btoken, factoryContract):
     
     # fetch the account
@@ -111,7 +100,7 @@ def set_pos(NFTContract, minter, Atoken, Btoken, fee, lowerTick, upperTick, amou
 '''
 Tests the minting, checking ownership and data, and burning positions within, above and bellow the price range
 '''
-def test_inRange(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool):
+def test_inRange(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     # fetch the accounts
     account = accounts[0]
 

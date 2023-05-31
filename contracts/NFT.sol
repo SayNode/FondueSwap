@@ -16,8 +16,16 @@ contract NFT is ERC721 {
     using Path for bytes;
     error NotAuthorized();
     error PositionNotCleared();
+    error NotEnoughLiquidity();
 
     event AddLiquidity(
+        uint256 indexed tokenId,
+        uint128 liquidity,
+        uint256 amount0,
+        uint256 amount1
+    );
+
+    event RemoveLiquidity(
         uint256 indexed tokenId,
         uint128 liquidity,
         uint256 amount0,
@@ -134,6 +142,48 @@ contract NFT is ERC721 {
         totalSupply--;
     }
 
+    struct CollectParams {
+        uint256 tokenId;
+        uint128 amount0;
+        uint128 amount1;
+    }
+    modifier isApprovedOrOwner(uint256 tokenId) {
+        address owner = ownerOf(tokenId);
+        if (
+            msg.sender != owner &&
+            !(isApprovedForAll(owner, msg.sender)) &&
+            getApproved(tokenId) != msg.sender
+        ) revert NotAuthorized();
+
+        _;
+    }
+
+    function collect(
+        CollectParams memory params
+    )
+        public
+        isApprovedOrOwner(params.tokenId)
+        returns (uint128 amount0, uint128 amount1)
+    {
+        (address _pool, int24 _lowerTick, int24 _upperTick) = tokenIDtoPosition(
+            params.tokenId
+        );
+
+        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
+            .TokenPosition(_pool, _lowerTick, _upperTick);
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+
+        (amount0, amount1) = pool.collect(
+            msg.sender,
+            tokenPosition.lowerTick,
+            tokenPosition.upperTick,
+            params.amount0,
+            params.amount1
+        );
+    }
+
     function uniswapV3MintCallback(
         uint256 amount0,
         uint256 amount1,
@@ -228,5 +278,83 @@ contract NFT is ERC721 {
 
         if (amount0 < params.amount0Min || amount1 < params.amount1Min)
             revert HelpFunctions.SlippageCheckFailed(amount0, amount1);
+    }
+
+    struct AddLiquidityParams {
+        uint256 tokenId;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+    }
+
+    function addLiquidity(
+        AddLiquidityParams calldata params
+    ) public returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
+        (address _pool, int24 _lowerTick, int24 _upperTick) = tokenIDtoPosition(
+            params.tokenId
+        );
+
+        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
+            .TokenPosition(_pool, _lowerTick, _upperTick);
+
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+
+        (liquidity, amount0, amount1) = _addLiquidity(
+            HelpFunctions.AddLiquidityInternalParams({
+                pool: IUniswapV3Pool(tokenPosition.pool),
+                lowerTick: tokenPosition.lowerTick,
+                upperTick: tokenPosition.upperTick,
+                amount0Desired: params.amount0Desired,
+                amount1Desired: params.amount1Desired,
+                amount0Min: params.amount0Min,
+                amount1Min: params.amount1Min
+            })
+        );
+
+        emit AddLiquidity(params.tokenId, liquidity, amount0, amount1);
+    }
+
+    struct RemoveLiquidityParams {
+        uint256 tokenId;
+        uint128 liquidity;
+    }
+
+    // TODO: add slippage check
+    function removeLiquidity(
+        RemoveLiquidityParams memory params
+    )
+        public
+        isApprovedOrOwner(params.tokenId)
+        returns (uint256 amount0, uint256 amount1)
+    {
+        (address _pool, int24 _lowerTick, int24 _upperTick) = tokenIDtoPosition(
+            params.tokenId
+        );
+
+        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
+            .TokenPosition(_pool, _lowerTick, _upperTick);
+
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+
+        (uint128 availableLiquidity, , , , ) = pool.positions(
+            HelpFunctions._poolPositionKey(tokenPosition)
+        );
+        if (params.liquidity > availableLiquidity) revert NotEnoughLiquidity();
+
+        (amount0, amount1) = pool.burn(
+            tokenPosition.lowerTick,
+            tokenPosition.upperTick,
+            params.liquidity
+        );
+
+        emit RemoveLiquidity(
+            params.tokenId,
+            params.liquidity,
+            amount0,
+            amount1
+        );
     }
 }
