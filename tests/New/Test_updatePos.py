@@ -256,6 +256,10 @@ def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, set
     #Remove all liquidity from Position 0
     remLiq(ABPool,NFTContract, Alice, 0)
 
+    #Should revert the burn because the position is not cleared
+    with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
+        NFTContract.burn(0,{"from": Alice})
+        
     #Collect tokens from Position 0
     collectLiq(ABPool, NFTContract, Alice, 0)
 
