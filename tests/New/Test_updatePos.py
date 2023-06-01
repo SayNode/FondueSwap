@@ -1,8 +1,10 @@
 import pytest
+import brownie
+from getError import encode_custom_error
 from brownie import (accounts, 
                     Contract, 
                     chain,
-                    MockToken, PoolFactory, Pool, NFT, NFTManager, HelpFunctions)
+                    MockToken, PoolFactory, Pool, NFT, HelpFunctions)
 
 @pytest.fixture
 def deployLibrary():
@@ -58,16 +60,6 @@ def NFTContract(factoryContract, deployLibrary):
     print(f"NFT contract deployed at {nft}")
     return nft
 
-@pytest.fixture
-def managerContract(factoryContract, NFTContract, deployLibrary):
-    # fetch the account
-    account = accounts[0]
-
-    # deploy Staking contract
-    manager = NFTManager.deploy(factoryContract, NFTContract, {"from":account})
-    # print contract address
-    print(f"Factory contract deployed at {manager}")
-    return manager
 
 @pytest.fixture
 def ABPool(Atoken, Btoken, factoryContract):
@@ -108,7 +100,7 @@ def set_pos(NFTContract, minter, Atoken, Btoken, fee, lowerTick, upperTick, amou
     return pos
     
 @pytest.fixture
-def settingPositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool):
+def settingPositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     # fetch the accounts
     account = accounts[0]
 
@@ -140,7 +132,9 @@ def settingPositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary
 
     pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
     print('Position:',pos)
-    assert pos == (ABPool, 84220, 86130)
+    assert pos[0] == ABPool
+    assert pos[4] == 84220
+    assert pos[5] == 86130
 
 
     #Alice: Second position
@@ -159,15 +153,44 @@ def settingPositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary
     assert len(ownedTokens) == 5
 
     pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
-    assert pos == (ABPool, 84220, 86130)
+    assert pos[0] == ABPool
+    assert pos[4] == 84220
+    assert pos[5] == 86130
     second_pos = NFTContract.tokenIDtoPosition(1, {"from": Alice})
-    assert second_pos == (ABPool, 81220, 82130)
+    assert second_pos[0] == ABPool
+    assert second_pos[4] ==81220
+    assert second_pos[5] ==82130
     third_pos = NFTContract.tokenIDtoPosition(2, {"from": Alice})
-    assert third_pos == (ABPool, 87220, 88130)
+    assert third_pos[0] == ABPool
+    assert third_pos[4] == 87220
+    assert third_pos[5] == 88130
     fourth_pos = NFTContract.tokenIDtoPosition(3, {"from": Alice})
-    assert fourth_pos == (ABPool, 84520, 85130)
+    assert fourth_pos[0] == ABPool
+    assert fourth_pos[4] == 84520
+    assert fourth_pos[5] == 85130
     fifth_pos = NFTContract.tokenIDtoPosition(4, {"from": Alice})
-    assert fifth_pos == (ABPool, 80320, 81230)
+    assert fifth_pos[0] == ABPool
+    assert fifth_pos[4] == 80320
+    assert fifth_pos[5] == 81230
+
+
+def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, settingPositions):
+
+    Alice = accounts[1]
+
+    #Should revert the burn because the position is not cleared
+    with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
+        NFTContract.burn(0,{"from": Alice})
+
+    #######################
+    amountA=0.02e18
+    amountB=100e18
+    minter = Alice
+    tokenID = 0
+    Atoken.approve(NFTContract, amountA, {"from": minter})
+    Btoken.approve(NFTContract, amountB, {"from": minter})
+    NFTContract.addLiquidity([tokenID, amountA, amountB, 0, 0],{"from": Alice})
+    ###################
 
     #Burn token 0 position
     NFTContract.burn(0,{"from": Alice})
@@ -192,6 +215,3 @@ def settingPositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary
     print('Tokens of Alice:',ownedTokens)
     assert ownedTokens == (1,3,4)
     assert len(ownedTokens) == 3
-
-def test_updatePositions(Atoken, Btoken, NFTContract, managerContract, deployLibrary, ABPool, settingPositions):
-    pass

@@ -132,7 +132,9 @@ def test_inRange(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
 
     pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
     print('Position:',pos)
-    assert pos == (ABPool, 84220, 86130)
+    assert pos[0] == ABPool
+    assert pos[4] == 84220
+    assert pos[5] == 86130
 
 
     #Alice: Second position
@@ -151,41 +153,24 @@ def test_inRange(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     assert len(ownedTokens) == 5
 
     pos = NFTContract.tokenIDtoPosition(0, {"from": Alice})
-    assert pos == (ABPool, 84220, 86130)
+    assert pos[0] == ABPool
+    assert pos[4] == 84220
+    assert pos[5] == 86130
     second_pos = NFTContract.tokenIDtoPosition(1, {"from": Alice})
-    assert second_pos == (ABPool, 81220, 82130)
+    assert second_pos[0] == ABPool
+    assert second_pos[4] ==81220
+    assert second_pos[5] ==82130
     third_pos = NFTContract.tokenIDtoPosition(2, {"from": Alice})
-    assert third_pos == (ABPool, 87220, 88130)
+    assert third_pos[0] == ABPool
+    assert third_pos[4] == 87220
+    assert third_pos[5] == 88130
     fourth_pos = NFTContract.tokenIDtoPosition(3, {"from": Alice})
-    assert fourth_pos == (ABPool, 84520, 85130)
+    assert fourth_pos[0] == ABPool
+    assert fourth_pos[4] == 84520
+    assert fourth_pos[5] == 85130
     fifth_pos = NFTContract.tokenIDtoPosition(4, {"from": Alice})
-    assert fifth_pos == (ABPool, 80320, 81230)
+    assert fifth_pos[0] == ABPool
+    assert fifth_pos[4] == 80320
+    assert fifth_pos[5] == 81230
 
-    #Should revert the burn because the position is not cleared
-    with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
-        NFTContract.burn(0,{"from": Alice})
-
-    #Burn token 0 position
-    NFTContract.burn(0,{"from": Alice})
-
-    tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 4
-    print('Total token Supply:',tokens)
-
-    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
-    print('Tokens of Alice:',ownedTokens)
-    assert ownedTokens == (1,2,3,4)
-    assert len(ownedTokens) == 4
-
-    #Burn token 2 position
-    NFTContract.burn(2,{"from": Alice})
-
-    tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 3
-    print('Total token Supply:',tokens)
-
-    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
-    print('Tokens of Alice:',ownedTokens)
-    assert ownedTokens == (1,3,4)
-    assert len(ownedTokens) == 3
-
+    

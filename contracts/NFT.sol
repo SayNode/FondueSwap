@@ -17,6 +17,7 @@ contract NFT is ERC721 {
     error NotAuthorized();
     error PositionNotCleared();
     error NotEnoughLiquidity();
+    error WrongToken();
 
     event AddLiquidity(
         uint256 indexed tokenId,
@@ -41,21 +42,42 @@ contract NFT is ERC721 {
     mapping(address => uint256[]) public userOwnedPositions;
     mapping(uint256 => bool) public burnedIds;
 
-    function tokenIDtoPosition(
-        uint256 tokenID
-    ) public view returns (address, int24, int24) {
-        return (
-            positions[tokenID].pool,
-            positions[tokenID].lowerTick,
-            positions[tokenID].upperTick
-        );
+    modifier isApprovedOrOwner(uint256 tokenId) {
+        address owner = ownerOf(tokenId);
+        if (
+            msg.sender != owner &&
+            !(isApprovedForAll(owner, msg.sender)) &&
+            getApproved(tokenId) != msg.sender
+        ) revert NotAuthorized();
+
+        _;
     }
 
     constructor(address factoryAddress) ERC721("NFT Positions", "PosNFT") {
         factory = factoryAddress;
     }
 
-    error WrongToken();
+    /*
+    View
+     */
+    function tokenIDtoPosition(
+        uint256 tokenId
+    ) public view returns (address, uint128, uint128, uint128, int24, int24) {
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
+            .positions(_poolPositionKey(tokenPosition));
+        return (
+            tokenPosition.pool,
+            liquidity,
+            tokensOwed0,
+            tokensOwed1,
+            tokenPosition.lowerTick,
+            tokenPosition.upperTick
+        );
+    }
 
     function tokenURI(
         uint256 tokenId
@@ -78,6 +100,9 @@ contract NFT is ERC721 {
             );
     }
 
+    /*
+    Public 
+    */
     function mint(
         HelpFunctions.MintParams calldata params
     ) public returns (uint256 tokenId) {
@@ -147,16 +172,6 @@ contract NFT is ERC721 {
         uint128 amount0;
         uint128 amount1;
     }
-    modifier isApprovedOrOwner(uint256 tokenId) {
-        address owner = ownerOf(tokenId);
-        if (
-            msg.sender != owner &&
-            !(isApprovedForAll(owner, msg.sender)) &&
-            getApproved(tokenId) != msg.sender
-        ) revert NotAuthorized();
-
-        _;
-    }
 
     function collect(
         CollectParams memory params
@@ -165,12 +180,9 @@ contract NFT is ERC721 {
         isApprovedOrOwner(params.tokenId)
         returns (uint128 amount0, uint128 amount1)
     {
-        (address _pool, int24 _lowerTick, int24 _upperTick) = tokenIDtoPosition(
+        HelpFunctions.TokenPosition memory tokenPosition = positions[
             params.tokenId
-        );
-
-        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
-            .TokenPosition(_pool, _lowerTick, _upperTick);
+        ];
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
@@ -291,12 +303,9 @@ contract NFT is ERC721 {
     function addLiquidity(
         AddLiquidityParams calldata params
     ) public returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
-        (address _pool, int24 _lowerTick, int24 _upperTick) = tokenIDtoPosition(
+        HelpFunctions.TokenPosition memory tokenPosition = positions[
             params.tokenId
-        );
-
-        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
-            .TokenPosition(_pool, _lowerTick, _upperTick);
+        ];
 
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
@@ -328,12 +337,9 @@ contract NFT is ERC721 {
         isApprovedOrOwner(params.tokenId)
         returns (uint256 amount0, uint256 amount1)
     {
-        (address _pool, int24 _lowerTick, int24 _upperTick) = tokenIDtoPosition(
+        HelpFunctions.TokenPosition memory tokenPosition = positions[
             params.tokenId
-        );
-
-        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
-            .TokenPosition(_pool, _lowerTick, _upperTick);
+        ];
 
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
