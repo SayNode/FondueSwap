@@ -1,4 +1,5 @@
 import pytest
+import math
 import brownie
 from getError import encode_custom_error
 from brownie import (accounts, 
@@ -186,10 +187,20 @@ def remLiq(ABPool, NFTContract, minter, tokenID):
     NFTContract.removeLiquidity([tokenID, liquidity],{"from": minter})
     chain.sleep(30)
     pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    currentPrice = (ABPool.slot0()[0]/(2**96))**2
+    currentTick = math.log(currentPrice,1.0001)
     assert pos[0] == ABPool
     assert pos[1] == 0
-    assert pos[2] != tokensOwed0
-    assert pos[3] != tokensOwed1
+    if(lowerTick<=currentTick and upperTick>=currentTick):
+        assert pos[2] != tokensOwed0
+        assert pos[3] != tokensOwed1
+    elif (lowerTick>=currentTick and upperTick>=currentTick):
+        assert pos[2] != tokensOwed0
+        assert pos[3] == tokensOwed1
+    elif (lowerTick<=currentTick and upperTick<=currentTick ):
+        assert pos[2] == tokensOwed0
+        assert pos[3] != tokensOwed1
     assert pos[4] == lowerTick
     assert pos[5] == upperTick
 
@@ -209,6 +220,25 @@ def addLiq(Atoken, Btoken, NFTContract, amountA,amountB, minter, tokenID):
     pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
     assert pos[1] > liquidity
     assert pos[2:] == (tokensOwed0, tokensOwed1, lowerTick, upperTick)
+
+def collectLiq(ABPool, NFTContract, minter, tokenID):
+
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    tokensOwed0 = pos[2]
+    tokensOwed1 = pos[3]
+    lowerTick = pos[4]
+    upperTick = pos[5]
+
+    NFTContract.collect([tokenID, tokensOwed0, tokensOwed1],{"from":minter})
+    chain.sleep(30)
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+    assert pos[0] == ABPool
+    assert pos[1] == 0
+    assert pos[2] == 0
+    assert pos[3] == 0
+    assert pos[4] == lowerTick
+    assert pos[5] == upperTick
 '''
 Test
 '''
@@ -220,35 +250,40 @@ def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, set
     with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
         NFTContract.burn(0,{"from": Alice})
 
-    #######################
-
+    #Add extra liquidity to Position 0
     addLiq(Atoken, Btoken, NFTContract, 0.02e18, 100e18, Alice, 0)
-    ###################
-
-    #######################
+ 
+    #Remove all liquidity from Position 0
     remLiq(ABPool,NFTContract, Alice, 0)
-    ###################
 
-    # #Burn token 0 position
-    # NFTContract.burn(0,{"from": Alice})
+    #Collect tokens from Position 0
+    collectLiq(ABPool, NFTContract, Alice, 0)
 
-    # tokens = NFTContract.totalSupply( {"from": Alice} )
-    # assert tokens == 4
-    # print('Total token Supply:',tokens)
+    #Burn token 0 position
+    NFTContract.burn(0,{"from": Alice})
 
-    # ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
-    # print('Tokens of Alice:',ownedTokens)
-    # assert ownedTokens == (1,2,3,4)
-    # assert len(ownedTokens) == 4
+    tokens = NFTContract.totalSupply( {"from": Alice} )
+    assert tokens == 4
+    print('Total token Supply:',tokens)
 
-    # #Burn token 2 position
-    # NFTContract.burn(2,{"from": Alice})
+    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
+    print('Tokens of Alice:',ownedTokens)
+    assert ownedTokens == (1,2,3,4)
+    assert len(ownedTokens) == 4
 
-    # tokens = NFTContract.totalSupply( {"from": Alice} )
-    # assert tokens == 3
-    # print('Total token Supply:',tokens)
+    #Burn token 2 position
+    #remove all liquidity from Position 2
+    remLiq(ABPool,NFTContract, Alice, 2)
 
-    # ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
-    # print('Tokens of Alice:',ownedTokens)
-    # assert ownedTokens == (1,3,4)
-    # assert len(ownedTokens) == 3
+    #collect tokens from Position 2
+    collectLiq(ABPool, NFTContract, Alice, 2)
+    NFTContract.burn(2,{"from": Alice})
+
+    tokens = NFTContract.totalSupply( {"from": Alice} )
+    assert tokens == 3
+    print('Total token Supply:',tokens)
+
+    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
+    print('Tokens of Alice:',ownedTokens)
+    assert ownedTokens == (1,3,4)
+    assert len(ownedTokens) == 3
