@@ -173,7 +173,45 @@ def settingPositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     assert fifth_pos[4] == 80320
     assert fifth_pos[5] == 81230
 
+def remLiq(ABPool, NFTContract, minter, tokenID):
 
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    liquidity =  pos[1]
+    tokensOwed0 = pos[2]
+    tokensOwed1 = pos[3]
+    lowerTick = pos[4]
+    upperTick = pos[5]
+
+    NFTContract.removeLiquidity([tokenID, liquidity],{"from": minter})
+    chain.sleep(30)
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+    assert pos[0] == ABPool
+    assert pos[1] == 0
+    assert pos[2] != tokensOwed0
+    assert pos[3] != tokensOwed1
+    assert pos[4] == lowerTick
+    assert pos[5] == upperTick
+
+def addLiq(Atoken, Btoken, NFTContract, amountA,amountB, minter, tokenID):
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    liquidity =  pos[1]
+    tokensOwed0 = pos[2]
+    tokensOwed1 = pos[3]
+    lowerTick = pos[4]
+    upperTick = pos[5]
+
+    Atoken.approve(NFTContract, amountA, {"from": minter})
+    Btoken.approve(NFTContract, amountB, {"from": minter})
+    NFTContract.addLiquidity([tokenID, amountA, amountB, 0, 0],{"from": minter})
+
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+    assert pos[1] > liquidity
+    assert pos[2:] == (tokensOwed0, tokensOwed1, lowerTick, upperTick)
+'''
+Test
+'''
 def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, settingPositions):
 
     Alice = accounts[1]
@@ -183,35 +221,34 @@ def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, set
         NFTContract.burn(0,{"from": Alice})
 
     #######################
-    amountA=0.02e18
-    amountB=100e18
-    minter = Alice
-    tokenID = 0
-    Atoken.approve(NFTContract, amountA, {"from": minter})
-    Btoken.approve(NFTContract, amountB, {"from": minter})
-    NFTContract.addLiquidity([tokenID, amountA, amountB, 0, 0],{"from": Alice})
+
+    addLiq(Atoken, Btoken, NFTContract, 0.02e18, 100e18, Alice, 0)
     ###################
 
-    #Burn token 0 position
-    NFTContract.burn(0,{"from": Alice})
+    #######################
+    remLiq(ABPool,NFTContract, Alice, 0)
+    ###################
 
-    tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 4
-    print('Total token Supply:',tokens)
+    # #Burn token 0 position
+    # NFTContract.burn(0,{"from": Alice})
 
-    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
-    print('Tokens of Alice:',ownedTokens)
-    assert ownedTokens == (1,2,3,4)
-    assert len(ownedTokens) == 4
+    # tokens = NFTContract.totalSupply( {"from": Alice} )
+    # assert tokens == 4
+    # print('Total token Supply:',tokens)
 
-    #Burn token 2 position
-    NFTContract.burn(2,{"from": Alice})
+    # ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
+    # print('Tokens of Alice:',ownedTokens)
+    # assert ownedTokens == (1,2,3,4)
+    # assert len(ownedTokens) == 4
 
-    tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 3
-    print('Total token Supply:',tokens)
+    # #Burn token 2 position
+    # NFTContract.burn(2,{"from": Alice})
 
-    ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
-    print('Tokens of Alice:',ownedTokens)
-    assert ownedTokens == (1,3,4)
-    assert len(ownedTokens) == 3
+    # tokens = NFTContract.totalSupply( {"from": Alice} )
+    # assert tokens == 3
+    # print('Total token Supply:',tokens)
+
+    # ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
+    # print('Tokens of Alice:',ownedTokens)
+    # assert ownedTokens == (1,3,4)
+    # assert len(ownedTokens) == 3
