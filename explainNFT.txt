@@ -136,7 +136,7 @@
         3) Call burn
 
 ////////////////////////////////////////////////
-    Questions:
+Questions:
     - Vtho produced by VET in pools. Is the contract the owner? Can the contract pay for txs?
     - Can we use the Vechain stablecoin as an on-ramp?
     - Multiple swaps at one time using multi-clause calls?
