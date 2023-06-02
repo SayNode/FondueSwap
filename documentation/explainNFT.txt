@@ -1,5 +1,6 @@
 
-
+////////////////////////////////////////////////
+Variables to interact with:
     uint256 public totalSupply: total number of tokens that currently exist (minted and not burned)
     uint256 private nextTokenId: simply keeps track of the tokenId number that will be used for the next token minted
 
@@ -15,18 +16,15 @@
     mapping(uint256 => bool) public burnedIds: keeps track if a tokenId has been burned
 
 
+////////////////////////////////////////////////
+Functions to interact with:
     /*
-    name: tokenIDtoPosition
+    name: tokensOfOwner
     Use: Frontend
-    Function: receives a tokenId and returns all the information regarding that tokens position
-    Receives: a tokenId number
-    Returns: - the pool the position belongs token
-             - liquidity of the position
-             - the tokens the user can withdraw+fees earned (both for token X and token Y)
-             - lower tick
-             - upper tick
+    Function: receives an address and returns all the token Ids owned by that address
+    Receives: an address
+    Returns: an array with all the tokenIds that address owns
     */
-
 
 
     /*
@@ -48,7 +46,6 @@
     */
 
 
-
     /*
     name: burn
     Use: Contract alteration
@@ -61,7 +58,6 @@
     Receives: a tokenId
     Returns: nothing
     */
-
 
 
     /*
@@ -78,17 +74,6 @@
 
     Returns: the amounts of tokenX and token Y that were collected
     */
-
-
-
-    /*
-    name: tokensOfOwner
-    Use: Frontend
-    Function: receives an address and returns all the token Ids owned by that address
-    Receives: an address
-    Returns: an array with all the tokenIds that address owns
-    */
-
 
 
     /*
@@ -109,7 +94,6 @@
     */
 
 
-
     /*
     name: removeLiquidity
     Use: Contract alteration
@@ -124,8 +108,21 @@
              - new amount of token Y in the position
     */
 
+    
+    /*
+    name: tokenIDtoPosition
+    Use: Frontend
+    Function: receives a tokenId and returns all the information regarding that tokens position
+    Receives: a tokenId number
+    Returns: - the pool the position belongs token
+             - liquidity of the position
+             - the tokens the user can withdraw+fees earned (both for token X and token Y)
+             - lower tick
+             - upper tick
+    */
 
 ////////////////////////////////////////////////
+Frontend operations:
 *If the frontend wants to show the user all of his positions and their info it should:
         1) Call the tokensOfOwner function with the user address. This will return all the 
         tokenIds owned by the user;
