@@ -8,17 +8,20 @@ import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
 import "./lib/LiquidityMath.sol";
 import "./lib/NFTRenderer.sol";
-import "./lib/PoolAddress.sol";
 import "./lib/TickMath.sol";
-import "./lib/Path.sol";
 
 contract NFT is ERC721 {
-    using Path for bytes;
+    /*
+    Custom Errors
+    */
     error NotAuthorized();
     error PositionNotCleared();
     error NotEnoughLiquidity();
     error WrongToken();
 
+    /*
+    Events
+    */
     event AddLiquidity(
         uint256 indexed tokenId,
         uint128 liquidity,
@@ -33,15 +36,46 @@ contract NFT is ERC721 {
         uint256 amount1
     );
 
+    /*
+    Structs
+    */
+    struct CollectParams {
+        uint256 tokenId;
+        uint128 amount0;
+        uint128 amount1;
+    }
+
+    struct AddLiquidityParams {
+        uint256 tokenId;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+    }
+
+    struct RemoveLiquidityParams {
+        uint256 tokenId;
+        uint128 liquidity;
+    }
+
+    /*
+    Variables
+    */
     uint256 public totalSupply;
     uint256 private nextTokenId;
 
     address public immutable factory;
 
+    /*
+    Mappings
+    */
     mapping(uint256 => HelpFunctions.TokenPosition) public positions;
     mapping(address => uint256[]) public userOwnedPositions;
     mapping(uint256 => bool) public burnedIds;
 
+    /*
+    Modifiers
+    */
     modifier isApprovedOrOwner(uint256 tokenId) {
         address owner = ownerOf(tokenId);
         if (
@@ -53,56 +87,67 @@ contract NFT is ERC721 {
         _;
     }
 
+    /*
+    Constructor
+    */
     constructor(address factoryAddress) ERC721("NFT Positions", "PosNFT") {
         factory = factoryAddress;
     }
 
     /*
-    View
-     */
-    function tokenIDtoPosition(
-        uint256 tokenId
-    ) public view returns (address, uint128, uint128, uint128, int24, int24) {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+    External
+    */
+    /// @notice Returns a list of all Liquidity Token IDs assigned to an address.
+    /// @param _owner The owner whose nfts we are interested in.
+    /// @dev This method MUST NEVER be called by smart contract code. First, it's fairly
+    ///  expensive (it walks the entire token array looking for tokens belonging to owner),
+    ///  but it also returns a dynamic array, which is only supported for web3 calls, and
+    ///  not contract-to-contract calls.
+    function tokensOfOwner(
+        address _owner
+    ) external view returns (uint256[] memory ownerTokens) {
+        uint256 tokenCount = balanceOf(_owner);
 
-        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
-        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
-            .positions(_poolPositionKey(tokenPosition));
-        return (
-            tokenPosition.pool,
-            liquidity,
-            tokensOwed0,
-            tokensOwed1,
-            tokenPosition.lowerTick,
-            tokenPosition.upperTick
-        );
-    }
+        if (tokenCount == 0) {
+            // Return an empty array
+            return new uint256[](0);
+        } else {
+            uint256[] memory result = new uint256[](tokenCount);
+            uint256 totalTokens = totalSupply;
+            uint256 resultIndex = 0;
 
-    function tokenURI(
-        uint256 tokenId
-    ) public view override returns (string memory) {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+            // We count on the fact that all tokens have IDs starting at 0 and increasing
+            // sequentially up to the totalSupply count.
+            uint256 tokenId;
 
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+            while (resultIndex < totalTokens) {
+                if (burnedIds[tokenId] != true) {
+                    if (ownerOf(tokenId) == _owner) {
+                        result[resultIndex] = tokenId;
+                        resultIndex++;
+                    }
+                }
+                tokenId++;
+            }
 
-        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
-
-        return
-            NFTRenderer.render(
-                NFTRenderer.RenderParams({
-                    pool: tokenPosition.pool,
-                    owner: address(this),
-                    lowerTick: tokenPosition.lowerTick,
-                    upperTick: tokenPosition.upperTick,
-                    fee: pool.fee()
-                })
-            );
+            return result;
+        }
     }
 
     /*
     Public 
     */
+    /// @notice Used for setting new positions. Mints an NFT connected to the created position
+    /// @param recipient: the user who is minting the new position
+    /// @param tokenA: first token in the pool where the position is being minted
+    /// @param tokenB: second token in the pool where the position is being minted
+    /// @param fee: fee of the pool where the position is being minted
+    /// @param lowerTick: lower tick of the position being minted
+    /// @param upperTick: upper tick of the position being minted
+    /// @param amount0Desired:amount of first token we want to add to the position as liquidity
+    /// @param amount1Desired:amount of second token we want to add to the position as liquidity
+    /// @param amount0Min: min amount of first token we want to add to the position as liquidity
+    /// @param amount1Min: min amount of second token we want to add to the position as liquidity
     function mint(
         HelpFunctions.MintParams calldata params
     ) public returns (uint256 tokenId) {
@@ -143,6 +188,10 @@ contract NFT is ERC721 {
         emit AddLiquidity(tokenId, liquidity, amount0, amount1);
     }
 
+    /// @notice Burns an NFT related to a liquidity position
+    /// @param tokenId The id of the NFT we wish to burn
+    /// @dev This method will fail if called before the user removes all liquidity from the corresponding positions
+    ///      and collects the corresponding tokens
     function burn(uint256 tokenId) public {
         address owner = ownerOf(tokenId);
         if (
@@ -167,12 +216,11 @@ contract NFT is ERC721 {
         totalSupply--;
     }
 
-    struct CollectParams {
-        uint256 tokenId;
-        uint128 amount0;
-        uint128 amount1;
-    }
-
+    /// @notice collects the tokens relative to a cleared position.
+    /// @param tokenId: the token Id of the position we wish to collect
+    /// @param amount0: amount of token 0 we want to collect
+    /// @param amount1: amount of token 1 we want to collect
+    /// @dev Can only be called after the user has removed all liquidity from the position
     function collect(
         CollectParams memory params
     )
@@ -196,110 +244,13 @@ contract NFT is ERC721 {
         );
     }
 
-    function uniswapV3MintCallback(
-        uint256 amount0,
-        uint256 amount1,
-        bytes calldata data
-    ) public {
-        IUniswapV3Pool.CallbackData memory extra = abi.decode(
-            data,
-            (IUniswapV3Pool.CallbackData)
-        );
-        IERC20(extra.token0).transferFrom(extra.payer, msg.sender, amount0);
-        IERC20(extra.token1).transferFrom(extra.payer, msg.sender, amount1);
-    }
-
-    /// @notice Returns a list of all Liquidity Token IDs assigned to an address.
-    /// @param _owner The owner whose nfts we are interested in.
-    /// @dev This method MUST NEVER be called by smart contract code. First, it's fairly
-    ///  expensive (it walks the entire token array looking for tokens belonging to owner),
-    ///  but it also returns a dynamic array, which is only supported for web3 calls, and
-    ///  not contract-to-contract calls.
-    function tokensOfOwner(
-        address _owner
-    ) external view returns (uint256[] memory ownerTokens) {
-        uint256 tokenCount = balanceOf(_owner);
-
-        if (tokenCount == 0) {
-            // Return an empty array
-            return new uint256[](0);
-        } else {
-            uint256[] memory result = new uint256[](tokenCount);
-            uint256 totalTokens = totalSupply;
-            uint256 resultIndex = 0;
-
-            // We count on the fact that all tokens have IDs starting at 0 and increasing
-            // sequentially up to the totalSupply count.
-            uint256 tokenId;
-
-            while (resultIndex < totalTokens) {
-                if (burnedIds[tokenId] != true) {
-                    if (ownerOf(tokenId) == _owner) {
-                        result[resultIndex] = tokenId;
-                        resultIndex++;
-                    }
-                }
-                tokenId++;
-            }
-
-            return result;
-        }
-    }
-
-    /*
-        Returns position ID within a pool
-    */
-    function _poolPositionKey(
-        HelpFunctions.TokenPosition memory position
-    ) internal view returns (bytes32 key) {
-        key = keccak256(
-            abi.encodePacked(
-                address(this),
-                position.lowerTick,
-                position.upperTick
-            )
-        );
-    }
-
-    function _addLiquidity(
-        HelpFunctions.AddLiquidityInternalParams memory params
-    ) internal returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
-        (uint160 sqrtPriceX96, , , , ) = params.pool.slot0();
-
-        liquidity = LiquidityMath.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtRatioAtTick(params.lowerTick),
-            TickMath.getSqrtRatioAtTick(params.upperTick),
-            params.amount0Desired,
-            params.amount1Desired
-        );
-
-        (amount0, amount1) = params.pool.mint(
-            address(this),
-            params.lowerTick,
-            params.upperTick,
-            liquidity,
-            abi.encode(
-                IUniswapV3Pool.CallbackData({
-                    token0: params.pool.token0(),
-                    token1: params.pool.token1(),
-                    payer: msg.sender
-                })
-            )
-        );
-
-        if (amount0 < params.amount0Min || amount1 < params.amount1Min)
-            revert HelpFunctions.SlippageCheckFailed(amount0, amount1);
-    }
-
-    struct AddLiquidityParams {
-        uint256 tokenId;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
-
+    /// @notice adds liquidity to an existing position.
+    /// @param tokenId: the token Id of the position we wish to add liquidity too
+    /// @param amount0Desired: amount of token 0 we want to add
+    /// @param amount1Desired: amount of token 1 we want to add
+    /// @param amount0Min: min amount of token 0 we want to add
+    /// @param amount1Min: min amount of token 1 we want to add
+    /// @dev does not mint a new NFT. It only updates the position info
     function addLiquidity(
         AddLiquidityParams calldata params
     ) public returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
@@ -324,12 +275,11 @@ contract NFT is ERC721 {
         emit AddLiquidity(params.tokenId, liquidity, amount0, amount1);
     }
 
-    struct RemoveLiquidityParams {
-        uint256 tokenId;
-        uint128 liquidity;
-    }
-
-    // TODO: add slippage check
+    /// @notice removes liquidity from an existing position.
+    /// @param tokenId: the token Id of the position we wish to remove liquidity from
+    /// @param liquidity: the liquidity amount we wish to remove
+    /// @dev does not burn the NFT and does not return the tokens to the user (use collect for that).
+    ///     It only updates the position info
     function removeLiquidity(
         RemoveLiquidityParams memory params
     )
@@ -362,5 +312,117 @@ contract NFT is ERC721 {
             amount0,
             amount1
         );
+    }
+
+    /// @notice help function to transfer the tokens.
+    function uniswapV3MintCallback(
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata data
+    ) public {
+        IUniswapV3Pool.CallbackData memory extra = abi.decode(
+            data,
+            (IUniswapV3Pool.CallbackData)
+        );
+        IERC20(extra.token0).transferFrom(extra.payer, msg.sender, amount0);
+        IERC20(extra.token1).transferFrom(extra.payer, msg.sender, amount1);
+    }
+
+    /*
+    Public - View
+     */
+    /// @notice receives a tokenId and returns all the information regarding that tokens position.
+    /// @param tokenId: the token Id
+    function tokenIDtoPosition(
+        uint256 tokenId
+    ) public view returns (address, uint128, uint128, uint128, int24, int24) {
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
+            .positions(_poolPositionKey(tokenPosition));
+        return (
+            tokenPosition.pool,
+            liquidity,
+            tokensOwed0,
+            tokensOwed1,
+            tokenPosition.lowerTick,
+            tokenPosition.upperTick
+        );
+    }
+
+    /// @notice returns the URI of the image of an NFT token.
+    /// @param tokenId: the token Id
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+
+        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+
+        return
+            NFTRenderer.render(
+                NFTRenderer.RenderParams({
+                    pool: tokenPosition.pool,
+                    owner: address(this),
+                    lowerTick: tokenPosition.lowerTick,
+                    upperTick: tokenPosition.upperTick,
+                    fee: pool.fee()
+                })
+            );
+    }
+
+    /*
+    Internal
+    */
+    /// @notice returns position ID within a pool
+    /// @param pool: the token Id
+    /// @param lowerTick: the token Id
+    /// @param upperTick: the token Id
+    function _poolPositionKey(
+        HelpFunctions.TokenPosition memory position
+    ) internal view returns (bytes32 key) {
+        key = keccak256(
+            abi.encodePacked(
+                address(this),
+                position.lowerTick,
+                position.upperTick
+            )
+        );
+    }
+
+    /// @notice help function to add liquidity anytime we mint or add liquidity to an existing position
+    function _addLiquidity(
+        HelpFunctions.AddLiquidityInternalParams memory params
+    ) internal returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
+        (uint160 sqrtPriceX96, , , , ) = params.pool.slot0();
+
+        liquidity = LiquidityMath.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtRatioAtTick(params.lowerTick),
+            TickMath.getSqrtRatioAtTick(params.upperTick),
+            params.amount0Desired,
+            params.amount1Desired
+        );
+
+        (amount0, amount1) = params.pool.mint(
+            address(this),
+            params.lowerTick,
+            params.upperTick,
+            liquidity,
+            abi.encode(
+                IUniswapV3Pool.CallbackData({
+                    token0: params.pool.token0(),
+                    token1: params.pool.token1(),
+                    payer: msg.sender
+                })
+            )
+        );
+
+        if (amount0 < params.amount0Min || amount1 < params.amount1Min)
+            revert HelpFunctions.SlippageCheckFailed(amount0, amount1);
     }
 }
