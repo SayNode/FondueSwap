@@ -210,7 +210,7 @@ contract NFT is ERC721 {
     }
 
     /// @notice Returns a list of all Liquidity Token IDs assigned to an address.
-    /// @param _owner The owner whose Kitties we are interested in.
+    /// @param _owner The owner whose nfts we are interested in.
     /// @dev This method MUST NEVER be called by smart contract code. First, it's fairly
     ///  expensive (it walks the entire token array looking for tokens belonging to owner),
     ///  but it also returns a dynamic array, which is only supported for web3 calls, and
