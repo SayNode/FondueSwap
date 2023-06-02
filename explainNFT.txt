@@ -1,0 +1,144 @@
+
+
+    uint256 public totalSupply: total number of tokens that currently exist (minted and not burned)
+    uint256 private nextTokenId: simply keeps track of the tokenId number that will be used for the next token minted
+
+    address public immutable factory: address of the pool factory contract
+
+    mapping(uint256 => HelpFunctions.TokenPosition) public positions: feed it a tokenId number and it will give you
+                                                                    the pool, lowerTick and upperTick for the position
+                                                                    represent by that token~
+
+    mapping(address => uint256[]) public userOwnedPositions: feed it an address and it will return all the tokenIds of the
+                                                            liquidity position NFTs the user has
+                                                            
+    mapping(uint256 => bool) public burnedIds: keeps track if a tokenId has been burned
+
+
+    /*
+    name: tokenIDtoPosition
+    Use: Frontend
+    Function: receives a tokenId and returns all the information regarding that tokens position
+    Receives: a tokenId number
+    Returns: - the pool the position belongs token
+             - liquidity of the position
+             - the tokens the user can withdraw+fees earned (both for token X and token Y)
+             - lower tick
+             - upper tick
+    */
+
+
+
+    /*
+    name: mint
+    Use: Contract alteration
+    Function: receives an array with parameters, creates a position NFT and sets liquidity in the pool
+    Receives: receives an array with:
+             - minter address
+             - Token X address
+             - Token Y address
+             - pool fee
+             - lower tick
+             - upper tick
+             - Amount of token X
+             - Amount of token Y
+             - Min amount of token X (we will just put 0 here)
+             - Min amount of token Y (we will just put 0 here)
+    Returns: - the tokenId of the liquidity position
+    */
+
+
+
+    /*
+    name: burn
+    Use: Contract alteration
+    Function: receives a tokenId and burns the corresponding NFT. 
+            Will fail if the user hasn't removed all liquidity 
+            from the position (removeLiquidity) and collected the 
+            corresponding tokens from this contract (collect).
+            Useful for the user to clean his positions (he stops 
+            seeing this NFT every time he requests his positions) 
+    Receives: a tokenId
+    Returns: nothing
+    */
+
+
+
+    /*
+    name: collect
+    Use: Contract alteration
+    Function: receives an array with parameters, 
+        and collects the tokens relative to a cleared position. 
+        Can only be called after the user has removed all liquidity 
+        from the position (removeLiquidity)
+    Receives: receives an array with:
+             - tokenId of the position
+             - Amount of token X to be collected
+             - Amount of token Y to be collected
+
+    Returns: the amounts of tokenX and token Y that were collected
+    */
+
+
+
+    /*
+    name: tokensOfOwner
+    Use: Frontend
+    Function: receives an address and returns all the token Ids owned by that address
+    Receives: an address
+    Returns: an array with all the tokenIds that address owns
+    */
+
+
+
+    /*
+    name: addLiquidity
+    Use: Contract alteration
+    Function: receives an array with parameters, and adds liquidity to an existing position. 
+            Does not mint any NFT.
+    Receives: receives an array with:
+             - tokenId
+             - Amount of token X we want to add to the position
+             - Amount of token Y we want to add to the position
+             - Min amount of token X we want to add to the position(we will just put 0 here)
+             - Min amount of token Y we want to add to the position (we will just put 0 here)
+    Returns: 
+             - the new liquidity of the position
+             - new amount of token X in the position
+             - new amount of token Y in the position
+    */
+
+
+
+    /*
+    name: removeLiquidity
+    Use: Contract alteration
+    Function: receives an array with parameters, and removes a specified amount of liquidity 
+            from an existing position. 
+            Does not burn any NFT.
+    Receives: receives an array with:
+             - tokenId
+             - liquidity amount we wish to remove
+    Returns: 
+             - new amount of token X in the position
+             - new amount of token Y in the position
+    */
+
+
+////////////////////////////////////////////////
+*If the frontend wants to show the user all of his positions and their info it should:
+        1) Call the tokensOfOwner function with the user address. This will return all the 
+        tokenIds owned by the user;
+        2) Call tokenIDtoPosition using the intended tokenID to get that positions info
+*If user wants to delete a position and get his tokens back:
+        1) Call removeLiquidity
+        2) Call collect
+        3) Call burn
+
+////////////////////////////////////////////////
+    Questions:
+    - Vtho produced by VET in pools. Is the contract the owner? Can the contract pay for txs?
+    - Can we use the Vechain stablecoin as an on-ramp?
+    - Multiple swaps at one time using multi-clause calls?
+    - Slippage prediction?
+
