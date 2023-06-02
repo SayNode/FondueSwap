@@ -1,0 +1,23 @@
+- NFT:
+    error NotAuthorized();
+    error PositionNotCleared();
+    error NotEnoughLiquidity();
+    error WrongToken();
+
+    BURN:
+        NotAuthorized();
+        WrongToken()
+        PositionNotCleared();
+    
+    COLLECT:
+        NotAuthorized();
+        WrongToken()
+
+    ADDLIQUIDITY:
+        WrongToken()
+        SlippageCheckFailed
+
+    REMOVELIQUIDITY:
+        NotAuthorized();
+        WrongToken()
+        NotEnoughLiquidity()

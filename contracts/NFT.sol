@@ -193,14 +193,7 @@ contract NFT is ERC721 {
     /// @param tokenId The id of the NFT we wish to burn
     /// @dev This method will fail if called before the user removes all liquidity from the corresponding positions
     ///      and collects the corresponding tokens
-    function burn(uint256 tokenId) public {
-        address owner = ownerOf(tokenId);
-        if (
-            msg.sender != owner &&
-            !(isApprovedForAll(owner, msg.sender)) &&
-            getApproved(tokenId) != msg.sender
-        ) revert NotAuthorized();
-
+    function burn(uint256 tokenId) public isApprovedOrOwner(tokenId) {
         HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00)) revert WrongToken();
 
