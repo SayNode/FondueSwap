@@ -138,16 +138,17 @@ contract NFT is ERC721 {
     Public 
     */
     /// @notice Used for setting new positions. Mints an NFT connected to the created position
-    /// @param recipient: the user who is minting the new position
-    /// @param tokenA: first token in the pool where the position is being minted
-    /// @param tokenB: second token in the pool where the position is being minted
-    /// @param fee: fee of the pool where the position is being minted
-    /// @param lowerTick: lower tick of the position being minted
-    /// @param upperTick: upper tick of the position being minted
-    /// @param amount0Desired:amount of first token we want to add to the position as liquidity
-    /// @param amount1Desired:amount of second token we want to add to the position as liquidity
-    /// @param amount0Min: min amount of first token we want to add to the position as liquidity
-    /// @param amount1Min: min amount of second token we want to add to the position as liquidity
+    /// @param params: an array with the following parameters:
+    ///             recipient: the user who is minting the new position
+    ///             tokenA: first token in the pool where the position is being minted
+    ///             tokenB: second token in the pool where the position is being minted
+    ///             fee: fee of the pool where the position is being minted
+    ///             lowerTick: lower tick of the position being minted
+    ///             upperTick: upper tick of the position being minted
+    ///             amount0Desired:amount of first token we want to add to the position as liquidity
+    ///             amount1Desired:amount of second token we want to add to the position as liquidity
+    ///             amount0Min: min amount of first token we want to add to the position as liquidity
+    ///             amount1Min: min amount of second token we want to add to the position as liquidity
     function mint(
         HelpFunctions.MintParams calldata params
     ) public returns (uint256 tokenId) {
@@ -217,9 +218,10 @@ contract NFT is ERC721 {
     }
 
     /// @notice collects the tokens relative to a cleared position.
-    /// @param tokenId: the token Id of the position we wish to collect
-    /// @param amount0: amount of token 0 we want to collect
-    /// @param amount1: amount of token 1 we want to collect
+    /// @param params: an array with the following parameters:
+    ///             tokenId: the token Id of the position we wish to collect
+    ///             amount0: amount of token 0 we want to collect
+    ///             amount1: amount of token 1 we want to collect
     /// @dev Can only be called after the user has removed all liquidity from the position
     function collect(
         CollectParams memory params
@@ -245,11 +247,12 @@ contract NFT is ERC721 {
     }
 
     /// @notice adds liquidity to an existing position.
-    /// @param tokenId: the token Id of the position we wish to add liquidity too
-    /// @param amount0Desired: amount of token 0 we want to add
-    /// @param amount1Desired: amount of token 1 we want to add
-    /// @param amount0Min: min amount of token 0 we want to add
-    /// @param amount1Min: min amount of token 1 we want to add
+    /// @param params: an array with the following parameters:
+    ///             tokenId: the token Id of the position we wish to add liquidity too
+    ///             amount0Desired: amount of token 0 we want to add
+    ///             amount1Desired: amount of token 1 we want to add
+    ///             amount0Min: min amount of token 0 we want to add
+    ///             amount1Min: min amount of token 1 we want to add
     /// @dev does not mint a new NFT. It only updates the position info
     function addLiquidity(
         AddLiquidityParams calldata params
@@ -276,8 +279,9 @@ contract NFT is ERC721 {
     }
 
     /// @notice removes liquidity from an existing position.
-    /// @param tokenId: the token Id of the position we wish to remove liquidity from
-    /// @param liquidity: the liquidity amount we wish to remove
+    /// @param params: an array with the following parameters:
+    ///             tokenId: the token Id of the position we wish to remove liquidity from
+    ///             liquidity: the liquidity amount we wish to remove
     /// @dev does not burn the NFT and does not return the tokens to the user (use collect for that).
     ///     It only updates the position info
     function removeLiquidity(
@@ -379,9 +383,10 @@ contract NFT is ERC721 {
     Internal
     */
     /// @notice returns position ID within a pool
-    /// @param pool: the token Id
-    /// @param lowerTick: the token Id
-    /// @param upperTick: the token Id
+    /// @param position: an array with the following parameters:
+    ///             pool: the token Id
+    ///             lowerTick: the token Id
+    ///             upperTick: the token Id
     function _poolPositionKey(
         HelpFunctions.TokenPosition memory position
     ) internal view returns (bytes32 key) {

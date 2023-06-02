@@ -8,7 +8,7 @@ Variables to interact with:
 
     mapping(uint256 => HelpFunctions.TokenPosition) public positions: feed it a tokenId number and it will give you
                                                                     the pool, lowerTick and upperTick for the position
-                                                                    represent by that token~
+                                                                    represent by that token
 
     mapping(address => uint256[]) public userOwnedPositions: feed it an address and it will return all the tokenIds of the
                                                             liquidity position NFTs the user has
