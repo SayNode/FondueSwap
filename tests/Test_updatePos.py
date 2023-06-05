@@ -107,8 +107,11 @@ def settingPositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
 
     #Fund the users
     Alice = accounts[1]
+    Bob = accounts[2]
     Atoken.mint(Alice, 100_000*10**18,{"from": account})
     Btoken.mint(Alice, 100_000*10**18,{"from": account})
+    Atoken.mint(Bob, 100_000*10**18,{"from": account})
+    Btoken.mint(Bob, 100_000*10**18,{"from": account})
 
     #Variables
     fraq=2**96
@@ -173,6 +176,19 @@ def settingPositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     assert fifth_pos[0] == ABPool
     assert fifth_pos[4] == 80320
     assert fifth_pos[5] == 81230
+
+    #Bob: First position
+    set_pos(NFTContract, Bob, Atoken, Btoken, 500, 83220, 86130, 1*10**18, 5000*10**18)
+    sixth_pos = NFTContract.tokenIDtoPosition(5, {"from": Alice})
+    assert sixth_pos[0] == ABPool
+    assert sixth_pos[4] == 83220
+    assert sixth_pos[5] == 86130
+
+    
+    BobOwnedTokens = NFTContract.tokensOfOwner(Bob, {"from": Bob} )
+    print('Tokens of Bob:',BobOwnedTokens)
+    assert BobOwnedTokens == (5,)
+    assert len(BobOwnedTokens) == 1
 
 def remLiq(ABPool, NFTContract, minter, tokenID):
 
@@ -245,21 +261,34 @@ Test
 def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, settingPositions):
 
     Alice = accounts[1]
+    Bob =accounts[2]
 
     #Should revert the burn because the position is not cleared
     with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
         NFTContract.burn(0,{"from": Alice})
 
+    #Should revert the burn because Alice does not own this token
+    with brownie.reverts(encode_custom_error('NFT', 'NotAuthorized', '')):
+        NFTContract.burn(5,{"from": Alice})
+
     #Add extra liquidity to Position 0
     addLiq(Atoken, Btoken, NFTContract, 0.02e18, 100e18, Alice, 0)
  
+    #Should revert the remove liquidity because Alice does not own this token
+    with brownie.reverts(encode_custom_error('NFT', 'NotAuthorized', '')):
+        remLiq(ABPool,NFTContract, Alice, 5)
+
     #Remove all liquidity from Position 0
     remLiq(ABPool,NFTContract, Alice, 0)
 
     #Should revert the burn because the position is not cleared
     with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
         NFTContract.burn(0,{"from": Alice})
-        
+
+    #Should revert the collect because Alice does not own this token
+    with brownie.reverts(encode_custom_error('NFT', 'NotAuthorized', '')):
+        collectLiq(ABPool, NFTContract, Alice, 5)
+
     #Collect tokens from Position 0
     collectLiq(ABPool, NFTContract, Alice, 0)
 
@@ -267,13 +296,19 @@ def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, set
     NFTContract.burn(0,{"from": Alice})
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 4
+    assert tokens == 5
     print('Total token Supply:',tokens)
 
     ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
     print('Tokens of Alice:',ownedTokens)
     assert ownedTokens == (1,2,3,4)
     assert len(ownedTokens) == 4
+
+    
+    BobOwnedTokens = NFTContract.tokensOfOwner(Bob, {"from": Bob} )
+    print('Tokens of Bob:',BobOwnedTokens)
+    assert BobOwnedTokens == (5,)
+    assert len(BobOwnedTokens) == 1
 
     #Burn token 2 position
     #remove all liquidity from Position 2
@@ -284,10 +319,28 @@ def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, set
     NFTContract.burn(2,{"from": Alice})
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
-    assert tokens == 3
+    assert tokens == 4
     print('Total token Supply:',tokens)
 
     ownedTokens = NFTContract.tokensOfOwner(Alice, {"from": Alice} )
     print('Tokens of Alice:',ownedTokens)
     assert ownedTokens == (1,3,4)
     assert len(ownedTokens) == 3
+
+    BobOwnedTokens = NFTContract.tokensOfOwner(Bob, {"from": Bob} )
+    print('Tokens of Bob:',BobOwnedTokens)
+    assert BobOwnedTokens == (5,)
+    assert len(BobOwnedTokens) == 1
+
+    # Burn token 5
+    #remove all liquidity from Position 5
+    remLiq(ABPool,NFTContract, Bob, 5)
+
+    #collect tokens from Position 5
+    collectLiq(ABPool, NFTContract, Bob, 5)
+    NFTContract.burn(5,{"from": Bob})
+
+    BobOwnedTokens = NFTContract.tokensOfOwner(Bob, {"from": Bob} )
+    print('Tokens of Bob:',BobOwnedTokens)
+    assert BobOwnedTokens == ()
+    assert len(BobOwnedTokens) == 0

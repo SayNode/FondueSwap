@@ -113,14 +113,14 @@ contract NFT is ERC721 {
             return new uint256[](0);
         } else {
             uint256[] memory result = new uint256[](tokenCount);
-            uint256 totalTokens = totalSupply;
+            uint256 totalTokens = nextTokenId;
             uint256 resultIndex = 0;
 
             // We count on the fact that all tokens have IDs starting at 0 and increasing
-            // sequentially up to the totalSupply count.
+            // sequentially up to the totalTokens count.
             uint256 tokenId;
 
-            while (resultIndex < totalTokens) {
+            while (resultIndex < totalTokens && tokenId < totalTokens) {
                 if (burnedIds[tokenId] != true) {
                     if (ownerOf(tokenId) == _owner) {
                         result[resultIndex] = tokenId;
