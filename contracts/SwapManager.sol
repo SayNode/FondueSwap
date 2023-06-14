@@ -85,6 +85,7 @@ contract SwapManager is IUniswapV3Manager {
 
         while (true) {
             hasMultiplePools = params.path.hasMultiplePools();
+
             params.amountIn = _swap(
                 params.amountIn,
                 hasMultiplePools ? address(this) : params.recipient,
@@ -114,15 +115,11 @@ contract SwapManager is IUniswapV3Manager {
         uint160 sqrtPriceLimitX96,
         SwapCallbackData memory data
     ) internal returns (uint256 amountOut) {
-        (address tokenIn, address tokenOut, uint24 fee) = data
-            .path
-            .decodeFirstPool();
-
-        uint24 tickSpacing = fact.fees(fee);
+        (address tokenIn, address tokenOut, ) = data.path.decodeFirstPool();
 
         bool zeroForOne = tokenIn < tokenOut;
 
-        (int256 amount0, int256 amount1) = getPool(tokenIn, tokenOut, fee).swap(
+        (int256 amount0, int256 amount1) = getPool(tokenIn, tokenOut, 500).swap(
             recipient,
             zeroForOne,
             amountIn,
