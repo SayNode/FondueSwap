@@ -24,37 +24,14 @@ def encode_custom_error(contract_name, err_name, params):
     return 'error not found'
 
 def getAllCustomErrorCodes():
-    contract_names=['Pool'
-            , 'PoolFactory'
-            , 'SwapManager'
-            , 'IERC20'
-            , 'IUniswapV3FlashCallback'
-            , 'IUniswapV3Manager'
-            , 'IUniswapV3MintCallback'
-            , 'IUniswapV3Pool'
-            , 'IUniswapV3PoolDeployer'
-            , 'IUniswapV3SwapCallback'
-            , 'BitMath'
-            , 'FixedPoint128'
-            , 'FixedPoint96'
-            , 'LiquidityMath'
-            , 'Math'
-            , 'Oracle'
-            , 'BytesLibExt'
-            , 'Path'
-            , 'PoolAddress'
-            , 'Position'
-            , 'SwapMath'
-            , 'Tick'
-            , 'TickBitmap'
-            , 'TickMath'
-            , 'console'
-            , 'ABDKMath64x64'
-            , 'Utils'
-            , 'PRBMath'
-            , 'BytesLib']
+    import os
+    
+    contract_names = list( os.listdir("build/Contracts") )#get all contract names from the build folder
+    contract_names.remove('dependencies')#remove folder of dependencies
+
+
     for contract_name in contract_names:
-        with open("build/Contracts/"+contract_name+".json") as f:
+        with open("build/Contracts/"+contract_name) as f:
             info_json = json.load(f)
         contract_abi = info_json["abi"]
         for error in [abi for abi in contract_abi if abi["type"] == "error"]:
@@ -68,3 +45,4 @@ def getAllCustomErrorCodes():
 
         
     return 'error not found'
+getAllCustomErrorCodes()
