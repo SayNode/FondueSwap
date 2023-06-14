@@ -115,11 +115,13 @@ contract SwapManager is IUniswapV3Manager {
         uint160 sqrtPriceLimitX96,
         SwapCallbackData memory data
     ) internal returns (uint256 amountOut) {
-        (address tokenIn, address tokenOut, ) = data.path.decodeFirstPool();
+        (address tokenIn, address tokenOut, uint24 fee) = data
+            .path
+            .decodeFirstPool();
 
         bool zeroForOne = tokenIn < tokenOut;
 
-        (int256 amount0, int256 amount1) = getPool(tokenIn, tokenOut, 500).swap(
+        (int256 amount0, int256 amount1) = getPool(tokenIn, tokenOut, fee).swap(
             recipient,
             zeroForOne,
             amountIn,

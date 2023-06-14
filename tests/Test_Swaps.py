@@ -207,9 +207,13 @@ def test_swapAB(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapManagerCo
     #Check swap correctness
     Atoken.approve(swapManagerContract, 10*10**18, {"from": Bob})
     slippage = 0.03
-    params = [Atoken, Btoken, 500, 1*10**18, int(int(ABPool.slot0({"from": account})[0])*(1-slippage))]
+    params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*(1-slippage))]
     swapManagerContract.swapSingle(params, {"from": Bob} )
 
+    print(init_Bob_balance_tokenA)
+    print(Atoken.balanceOf(Bob))
+    print(init_Bob_balance_tokenB)
+    print(Btoken.balanceOf(Bob))
     assert Atoken.balanceOf(Bob)<init_Bob_balance_tokenA
     assert Btoken.balanceOf(Bob)>init_Bob_balance_tokenB
     #Check if Alice gets the correct rewards after withdrawing her position
