@@ -14,6 +14,10 @@
 
 - In mint, do it so it receives the price and not the tick. We can do this using the function getTickAtSqrtRatio in the TickMath library
 
+## Testing
+
+- see if rewards for providing liquidity should be
+
 ## IMPORTANT - TO DO
 
 To reduce contract size, create a separate contract and interface that will have the

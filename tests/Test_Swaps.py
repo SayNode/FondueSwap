@@ -39,6 +39,28 @@ def Btoken():
     return Btoken
 
 @pytest.fixture
+def Xtoken():
+    # fetch the account
+    account = accounts[0]
+
+    # deploy contract
+    Xtoken = MockToken.deploy("TokenX","TX",18,{"from":account})
+    # print contract address
+    print(f"Token contract deployed at {Xtoken}")
+    return Xtoken
+
+@pytest.fixture
+def Ytoken():
+    # fetch the account
+    account = accounts[0]
+
+    # deploy contract
+    Ytoken = MockToken.deploy("TokenY","TY",18,{"from":account})
+    # print contract address
+    print(f"Token contract deployed at {Ytoken}")
+    return Ytoken
+
+@pytest.fixture
 def factoryContract():
     # fetch the account
     account = accounts[0]
@@ -97,6 +119,33 @@ def ABPool(Atoken, Btoken, factoryContract):
     ABPool = Contract.from_abi("Pool", poolAB_address, poolABI)
 
     return ABPool
+
+@pytest.fixture
+def XYPool(Xtoken, Ytoken, factoryContract):
+    
+    # fetch the account
+    account = accounts[0]
+    
+    #Variables
+    feeXY=3000
+
+    #Create pool XY
+    poolCreation = factoryContract.createPool(Xtoken, 
+                                            Ytoken,
+                                            feeXY,
+                                            {"from": account})
+                                            
+    poolXY_address = poolCreation.events['PoolCreated']['pool']
+
+    print("Pool Created at ", poolXY_address)
+
+    assert poolXY_address == factoryContract.pools(Xtoken, Ytoken, feeXY)
+
+    #Turn pool address into a contract
+    poolABI = Pool.abi
+    XYPool = Contract.from_abi("Pool", poolXY_address, poolABI)
+
+    return XYPool
 
 def set_pos(NFTContract, minter, Atoken, Btoken, fee, lowerTick, upperTick, amountA, amountB):
     #First alice position
@@ -182,8 +231,81 @@ def init_setup(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapManagerCon
     assert fifth_pos[4] == 80320
     assert fifth_pos[5] == 81230
 
+@pytest.fixture
+def init_setup_secondPool(Xtoken, Ytoken, NFTContract, deployLibrary, XYPool,swapManagerContract):
+    # fetch the accounts
+    account = accounts[0]
+
+    #Fund the users
+    Carol = accounts[8]
+    Xtoken.mint(Carol, 100_000*10**18,{"from": account})
+    Ytoken.mint(Carol, 100_000*10**18,{"from": account})
+
+    #Variables
+    fraq=2**96
+    initP_XY=100
+
+    #Initialize pool XY
+    XYPool.initialize(initP_XY, {"from": account})
+    print("Slot0:",XYPool.slot0({"from": account}))
+    assert XYPool.slot0({"from": account})[0] != (0)
     
-def test_swapAB(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapManagerContract, init_setup):
+    #Alice: First position
+    set_pos(NFTContract, Carol, Xtoken, Ytoken, 500, 84220, 86130, 1*10**18, 5000*10**18)
+
+    tokens = NFTContract.totalSupply( {"from": Carol} )
+    assert tokens == 1
+    print('Total token Supply:',tokens)
+
+    ownedTokens = NFTContract.tokensOfOwner(Carol, {"from": Carol} )
+    assert ownedTokens[0] == 0
+    assert len(ownedTokens) == 1
+    print('Tokens of minter:',ownedTokens)
+
+    pos = NFTContract.tokenIDtoPosition(0, {"from": Carol})
+    print('Position:',pos)
+    assert pos[0] == XYPool
+    assert pos[4] == 84220
+    assert pos[5] == 86130
+
+
+    #Alice: Second position
+    set_pos(NFTContract, Carol, Xtoken, Ytoken, 500, 81220, 82130, 0.1*10**18, 500*10**18)# bellow range
+    set_pos(NFTContract, Carol, Xtoken, Ytoken, 500, 87220, 88130, 0.1*10**18, 500*10**18)#above range
+    set_pos(NFTContract, Carol, Xtoken, Ytoken, 500, 84520, 85130, 0.01*10**18, 50*10**18)#within range
+    set_pos(NFTContract, Carol, Xtoken, Ytoken, 500, 80320, 81230, 1*10**18, 5000*10**18)#bellow range
+
+    tokens = NFTContract.totalSupply( {"from": Carol} )
+    assert tokens == 5
+    print('Total token Supply:',tokens)
+
+    ownedTokens = NFTContract.tokensOfOwner(Carol, {"from": Carol} )
+    print('Tokens of Carol:',ownedTokens)
+    assert ownedTokens == (0,1,2,3,4)
+    assert len(ownedTokens) == 5
+
+    pos = NFTContract.tokenIDtoPosition(0, {"from": Carol})
+    assert pos[0] == XYPool
+    assert pos[4] == 84220
+    assert pos[5] == 86130
+    second_pos = NFTContract.tokenIDtoPosition(1, {"from": Carol})
+    assert second_pos[0] == XYPool
+    assert second_pos[4] ==81220
+    assert second_pos[5] ==82130
+    third_pos = NFTContract.tokenIDtoPosition(2, {"from": Carol})
+    assert third_pos[0] == XYPool
+    assert third_pos[4] == 87220
+    assert third_pos[5] == 88130
+    fourth_pos = NFTContract.tokenIDtoPosition(3, {"from": Carol})
+    assert fourth_pos[0] == XYPool
+    assert fourth_pos[4] == 84520
+    assert fourth_pos[5] == 85130
+    fifth_pos = NFTContract.tokenIDtoPosition(4, {"from": Carol})
+    assert fifth_pos[0] == XYPool
+    assert fifth_pos[4] == 80320
+    assert fifth_pos[5] == 81230
+    
+def test_MultipleSwapAB(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapManagerContract, init_setup):
     # fetch the accounts
     account = accounts[0]
 
@@ -202,8 +324,6 @@ def test_swapAB(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapManagerCo
     init_Bob_balance_tokenB = Btoken.balanceOf(Bob)
     init_Carol_balance_tokenB = Btoken.balanceOf(Carol)
 
-
-    
     #Check swap correctness
     Atoken.approve(swapManagerContract, 10*10**18, {"from": Bob})
     slippage = 0.03
@@ -216,4 +336,44 @@ def test_swapAB(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapManagerCo
     print(Btoken.balanceOf(Bob))
     assert Atoken.balanceOf(Bob)<init_Bob_balance_tokenA
     assert Btoken.balanceOf(Bob)>init_Bob_balance_tokenB
+
+    #Check if Alice gets the correct rewards after withdrawing her position
+
+def test_swapAB(Atoken, Btoken, ABPool,
+                Xtoken, Ytoken, XYPool,  
+                NFTContract, deployLibrary, swapManagerContract, 
+                init_setup, init_setup_secondPool):
+    
+    # fetch the accounts
+    account = accounts[0]
+
+    #Establish the users
+    Alice = accounts[1]
+    Bob = accounts[2]
+    Carol =accounts[8]
+
+    #Funding the users
+    Atoken.mint(Bob, 10_000*10**18,{"from": account})
+
+    #Check initial balances
+    init_Alice_balance_tokenA = Atoken.balanceOf(Alice)
+    init_Bob_balance_tokenA = Atoken.balanceOf(Bob)
+    init_Carol_balance_tokenA = Atoken.balanceOf(Carol)
+    init_Alice_balance_tokenB = Btoken.balanceOf(Alice)
+    init_Bob_balance_tokenB = Btoken.balanceOf(Bob)
+    init_Carol_balance_tokenB = Btoken.balanceOf(Carol)
+
+    #Check swap correctness
+    Atoken.approve(swapManagerContract, 10*10**18, {"from": Bob})
+    slippage = 0.03
+    params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*(1-slippage))]
+    swapManagerContract.swapSingle(params, {"from": Bob} )
+
+    print(init_Bob_balance_tokenA)
+    print(Atoken.balanceOf(Bob))
+    print(init_Bob_balance_tokenB)
+    print(Btoken.balanceOf(Bob))
+    assert Atoken.balanceOf(Bob)<init_Bob_balance_tokenA
+    assert Btoken.balanceOf(Bob)>init_Bob_balance_tokenB
+
     #Check if Alice gets the correct rewards after withdrawing her position
