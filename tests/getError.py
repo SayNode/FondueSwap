@@ -67,3 +67,4 @@ def decodeError(encodedError):
         
     return 'error not found'
 
+decodeError('0x4323a555')
