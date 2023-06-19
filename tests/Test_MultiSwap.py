@@ -444,8 +444,15 @@ def test_MultipleSwapAB(Atoken, Btoken, ABPool,
     #     uint256 amountIn;
     #     uint256 minAmountOut;
     # }
+    
+    #Should revert because there is not enough liquidity
+    SwapParams = [path, Bob, 1*10**18, (1*10**18)*(1-slippage)]
+    with brownie.reverts(encode_custom_error('Pool', 'NotEnoughLiquidity', '')):
+        swapManagerContract.swapMulti(SwapParams, {"from": Bob} )
+
+    #Should pass
     SwapParams = [path, Bob, 0.00001*10**18, (0.00001*10**18)*(1-slippage)]
-    swapManagerContract.swap(SwapParams, {"from": Bob} )
+    swapManagerContract.swapMulti(SwapParams, {"from": Bob} )
 
     print(init_Bob_balance_tokenA)
     print(Atoken.balanceOf(Bob))

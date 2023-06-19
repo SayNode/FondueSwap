@@ -113,6 +113,9 @@
   1. Call removeLiquidity
   2. Call collect
   3. Call burn
+- To integrate liquidity:
+  1. The user specifies percenatge of slippage we his comfortable with
+  2. When sending the _params_ to _singleSwap_, multiply the S0 current square root price by the root of 1-slippage
 
 ## Questions:
 

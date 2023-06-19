@@ -1,5 +1,6 @@
 import pytest
 import brownie
+import math
 from getError import encode_custom_error
 from getMultiPoolPath import append_hex
 from brownie import (accounts, 
@@ -432,7 +433,14 @@ def test_swapAB(Atoken, Btoken, ABPool,
     #Check swap correctness
     Atoken.approve(swapManagerContract, 10*10**18, {"from": Bob})
     slippage = 0.03
-    params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*(1-slippage))]
+
+    #Should revert because there is not enough liquidity
+    params = [Atoken, Btoken, 500, 100*10**18, 0]
+    with brownie.reverts(encode_custom_error('Pool', 'NotEnoughLiquidity', '')):
+        swapManagerContract.swapSingle(params, {"from": Bob} )
+
+    #Should pass
+    params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
     swapManagerContract.swapSingle(params, {"from": Bob} )
 
     print(init_Bob_balance_tokenA)

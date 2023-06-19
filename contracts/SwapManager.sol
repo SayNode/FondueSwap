@@ -79,7 +79,7 @@ contract SwapManager is IUniswapV3Manager {
         );
     }
 
-    function swap(SwapParams memory params) public returns (uint256 amountOut) {
+    function swapMulti(SwapParams memory params) public returns (uint256 amountOut) {
         address payer = msg.sender;
         bool hasMultiplePools;
 
