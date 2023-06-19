@@ -177,11 +177,9 @@ def XYPool(Xtoken, Ytoken, factoryContract):
 
 def set_pos(NFTContract, minter, Onetoken, Twotoken, fee, lowerTick, upperTick, amountA, amountB):
     #First alice position
-    print('----------------',Onetoken.allowance(minter, NFTContract))
     Onetoken.approve(NFTContract, 100000*10**18, {"from": minter})
     Twotoken.approve(NFTContract, 100000*10**18, {"from": minter})
 
-    print('----------------',Onetoken.allowance(minter, NFTContract))
     pos = NFTContract.mint([minter, Onetoken, Twotoken, fee, lowerTick, upperTick, amountA, amountB, 0, 0], {"from": minter} )
     chain.sleep(30)
     return pos
@@ -433,6 +431,7 @@ def test_MultipleSwapAB(Atoken, Btoken, ABPool,
     init_Alice_balance_tokenB = Btoken.balanceOf(Alice)
     init_Bob_balance_tokenB = Btoken.balanceOf(Bob)
     init_Carol_balance_tokenB = Btoken.balanceOf(Carol)
+    init_Bob_balance_tokenY=Ytoken.balanceOf(Bob)
 
     #Check swap correctness
     Atoken.approve(swapManagerContract, 10*10**18, {"from": Bob})
@@ -445,14 +444,14 @@ def test_MultipleSwapAB(Atoken, Btoken, ABPool,
     #     uint256 amountIn;
     #     uint256 minAmountOut;
     # }
-    SwapParams = [path, Bob, 0.1*10**18, (0.1*10**18)*(1-slippage)]
+    SwapParams = [path, Bob, 0.00001*10**18, (0.00001*10**18)*(1-slippage)]
     swapManagerContract.swap(SwapParams, {"from": Bob} )
 
     print(init_Bob_balance_tokenA)
     print(Atoken.balanceOf(Bob))
-    print(init_Bob_balance_tokenB)
-    print(Btoken.balanceOf(Bob))
+    print(init_Bob_balance_tokenY)
+    print(Ytoken.balanceOf(Bob))
     assert Atoken.balanceOf(Bob)<init_Bob_balance_tokenA
-    assert Btoken.balanceOf(Bob)>init_Bob_balance_tokenB
+    assert Ytoken.balanceOf(Bob)>init_Bob_balance_tokenY
 
     #Check if Alice gets the correct rewards after withdrawing her position
