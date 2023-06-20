@@ -293,7 +293,7 @@ contract NFT is ERC721 {
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 
         (uint128 availableLiquidity, , , , ) = pool.positions(
-            HelpFunctions._poolPositionKey(tokenPosition)
+            _poolPositionKey(tokenPosition)
         );
         if (params.liquidity > availableLiquidity) revert NotEnoughLiquidity();
 
