@@ -2,23 +2,19 @@
 pragma solidity ^0.8.14;
 
 import "./PoolFactory.sol";
+import "./HelpFunctions.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
 import "./interfaces/IUniswapV3Manager.sol";
 
-import "./lib/LiquidityMath.sol";
 import "./lib/Path.sol";
 import "./lib/PoolAddress.sol";
 import "./lib/TickMath.sol";
-import "./lib/console.sol";
 
 contract SwapManager is IUniswapV3Manager {
     event Log(string message, uint24 data);
     using Path for bytes;
-
-    error SlippageCheckFailed(uint256 amount0, uint256 amount1);
-    error TooLittleReceived(uint256 amountOut);
 
     address public immutable factory;
 
@@ -42,7 +38,12 @@ contract SwapManager is IUniswapV3Manager {
             uint128 tokensOwed1
         )
     {
-        IUniswapV3Pool pool = getPool(params.tokenA, params.tokenB, params.fee);
+        IUniswapV3Pool pool = HelpFunctions._getPool(
+            factory,
+            params.tokenA,
+            params.tokenB,
+            params.fee
+        );
 
         (
             liquidity,
@@ -79,7 +80,9 @@ contract SwapManager is IUniswapV3Manager {
         );
     }
 
-    function swapMulti(SwapParams memory params) public returns (uint256 amountOut) {
+    function swapMulti(
+        SwapParams memory params
+    ) public returns (uint256 amountOut) {
         address payer = msg.sender;
         bool hasMultiplePools;
 
@@ -106,7 +109,7 @@ contract SwapManager is IUniswapV3Manager {
         }
 
         if (amountOut < params.minAmountOut)
-            revert TooLittleReceived(amountOut);
+            revert HelpFunctions.TooLittleReceived(amountOut);
     }
 
     function _swap(
@@ -121,34 +124,23 @@ contract SwapManager is IUniswapV3Manager {
 
         bool zeroForOne = tokenIn < tokenOut;
 
-        (int256 amount0, int256 amount1) = getPool(tokenIn, tokenOut, fee).swap(
-            recipient,
-            zeroForOne,
-            amountIn,
-            sqrtPriceLimitX96 == 0
-                ? (
-                    zeroForOne
-                        ? TickMath.MIN_SQRT_RATIO + 1
-                        : TickMath.MAX_SQRT_RATIO - 1
-                )
-                : sqrtPriceLimitX96,
-            abi.encode(data)
-        );
+        (int256 amount0, int256 amount1) = HelpFunctions
+            ._getPool(factory, tokenIn, tokenOut, fee)
+            .swap(
+                recipient,
+                zeroForOne,
+                amountIn,
+                sqrtPriceLimitX96 == 0
+                    ? (
+                        zeroForOne
+                            ? TickMath.MIN_SQRT_RATIO + 1
+                            : TickMath.MAX_SQRT_RATIO - 1
+                    )
+                    : sqrtPriceLimitX96,
+                abi.encode(data)
+            );
 
         amountOut = uint256(-(zeroForOne ? amount1 : amount0));
-    }
-
-    function getPool(
-        address token0,
-        address token1,
-        uint24 fee
-    ) internal view returns (IUniswapV3Pool pool) {
-        (token0, token1) = token0 < token1
-            ? (token0, token1)
-            : (token1, token0);
-        pool = IUniswapV3Pool(
-            PoolAddress.computeAddress(factory, token0, token1, fee)
-        );
     }
 
     function uniswapV3SwapCallback(

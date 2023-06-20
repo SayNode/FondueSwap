@@ -1,21 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.14;
 
-import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
-import "./interfaces/IUniswapV3Manager.sol";
-import "./lib/LiquidityMath.sol";
-import "./lib/Path.sol";
+
 import "./lib/PoolAddress.sol";
-import "./lib/TickMath.sol";
-import "./lib/console.sol";
 
 library HelpFunctions {
-
     error WrongToken();
     error PositionNotCleared();
     error NotAuthorized();
     error SlippageCheckFailed(uint256 amount0, uint256 amount1);
+    error TooLittleReceived(uint256 amountOut);
 
     struct MintParams {
         address recipient;
@@ -46,37 +41,6 @@ library HelpFunctions {
         int24 upperTick;
     }
 
-    function _addLiquidity(
-        AddLiquidityInternalParams memory params
-    ) internal returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
-        (uint160 sqrtPriceX96, , , , ) = params.pool.slot0();
-
-        liquidity = LiquidityMath.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtRatioAtTick(params.lowerTick),
-            TickMath.getSqrtRatioAtTick(params.upperTick),
-            params.amount0Desired,
-            params.amount1Desired
-        );
-
-        (amount0, amount1) = params.pool.mint(
-            msg.sender,
-            params.lowerTick,
-            params.upperTick,
-            liquidity,
-            abi.encode(
-                IUniswapV3Pool.CallbackData({
-                    token0: params.pool.token0(),
-                    token1: params.pool.token1(),
-                    payer: msg.sender
-                })
-            )
-        );
-
-        if (amount0 < params.amount0Min || amount1 < params.amount1Min)
-            revert SlippageCheckFailed(amount0, amount1);
-    }
-
     function _getPool(
         address factory,
         address token0,
@@ -88,21 +52,6 @@ library HelpFunctions {
             : (token1, token0);
         pool = IUniswapV3Pool(
             PoolAddress.computeAddress(factory, token0, token1, fee)
-        );
-    }
-
-    /*
-        Returns position ID within a pool
-    */
-    function _poolPositionKey(
-        TokenPosition memory position
-    ) internal view returns (bytes32 key) {
-        key = keccak256(
-            abi.encodePacked(
-                address(this),
-                position.lowerTick,
-                position.upperTick
-            )
         );
     }
 
