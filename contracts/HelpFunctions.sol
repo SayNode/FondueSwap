@@ -56,6 +56,21 @@ library HelpFunctions {
     }
 
     /*
+        Returns position ID within a pool
+    */
+    function _poolPositionKey(
+        TokenPosition memory position
+    ) internal view returns (bytes32 key) {
+        key = keccak256(
+            abi.encodePacked(
+                address(this),
+                position.lowerTick,
+                position.upperTick
+            )
+        );
+    }
+
+    /*
         Returns position ID within the NFT manager
     */
     function _positionKey(
