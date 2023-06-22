@@ -2,7 +2,6 @@
 pragma solidity ^0.8.14;
 
 import "./new/Utils.sol";
-import "./lib/console.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3FlashCallback.sol";

@@ -438,12 +438,6 @@ def test_MultipleSwapAB(Atoken, Btoken, ABPool,
     slippage = 0.03
     path = append_hex([Atoken.address, 500, Btoken.address, 500, Xtoken.address, 500, Ytoken.address])
 
-    # struct SwapParams {
-    #     bytes path;
-    #     address recipient;
-    #     uint256 amountIn;
-    #     uint256 minAmountOut;
-    # }
     
     #Should revert because there is not enough liquidity
     SwapParams = [path, Bob, 1*10**18, (1*10**18)*(1-slippage)]
