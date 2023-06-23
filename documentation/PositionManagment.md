@@ -148,3 +148,7 @@
 
 - NotAuthorized (trying to burn or collect a position not owned)
 - PositionNotCleared (trying to burn or collect a position that still has liquidity)
+
+# Test_TokensOfOwner
+
+Tested the normal functioning of the function _tokensOfOwner_ when establishing positions in different pools and after deletion
