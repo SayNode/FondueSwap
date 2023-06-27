@@ -15,9 +15,7 @@ contract NFT is ERC721 {
     Custom Errors
     */
     error NotAuthorized();
-    error PositionNotCleared();
     error NotEnoughLiquidity();
-    error WrongToken();
 
     /*
     Events
@@ -195,14 +193,15 @@ contract NFT is ERC721 {
     ///      and collects the corresponding tokens
     function burn(uint256 tokenId) public isApprovedOrOwner(tokenId) {
         HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
         (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
             .positions(_poolPositionKey(tokenPosition));
 
         if (liquidity > 0 || tokensOwed0 > 0 || tokensOwed1 > 0)
-            revert PositionNotCleared();
+            revert HelpFunctions.PositionNotCleared();
 
         delete positions[tokenId];
         burnedIds[tokenId] = true;
@@ -226,7 +225,8 @@ contract NFT is ERC721 {
         HelpFunctions.TokenPosition memory tokenPosition = positions[
             params.tokenId
         ];
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 
@@ -254,7 +254,8 @@ contract NFT is ERC721 {
             params.tokenId
         ];
 
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
 
         (liquidity, amount0, amount1) = _addLiquidity(
             HelpFunctions.AddLiquidityInternalParams({
@@ -288,7 +289,8 @@ contract NFT is ERC721 {
             params.tokenId
         ];
 
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 
@@ -334,7 +336,8 @@ contract NFT is ERC721 {
         uint256 tokenId
     ) public view returns (address, uint128, uint128, uint128, int24, int24) {
         HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
         (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool
@@ -356,7 +359,8 @@ contract NFT is ERC721 {
     ) public view override returns (string memory) {
         HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
 
-        if (tokenPosition.pool == address(0x00)) revert WrongToken();
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 

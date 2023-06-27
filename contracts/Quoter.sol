@@ -24,7 +24,7 @@ contract Quoter {
         factory = factory_;
     }
 
-    function quote(
+    function quoteMulti(
         bytes memory path,
         uint256 amountIn
     )

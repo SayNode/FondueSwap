@@ -258,7 +258,7 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool,swapMan
     assert fifth_pos[4] == 80320
     assert fifth_pos[5] == 81230
 
-@pytest.fixture #METER TICKS CORRECTS DE POSIÇÃO!!!!!!!!!11
+@pytest.fixture 
 def init_setup_XYPool(Xtoken, Ytoken, NFTContract, deployLibrary, XYPool,swapManagerContract):
     # fetch the accounts
     account = accounts[0]
@@ -332,7 +332,7 @@ def init_setup_XYPool(Xtoken, Ytoken, NFTContract, deployLibrary, XYPool,swapMan
     # assert fifth_pos[4] == 40320
     # assert fifth_pos[5] == 41230
 
-@pytest.fixture #METER TICKS CORRECTS DE POSIÇÃO!!!!!!!!!11
+@pytest.fixture 
 def init_setup_BXPool(Btoken, Xtoken, NFTContract, deployLibrary, BXPool,swapManagerContract):
     # fetch the accounts
     account = accounts[0]
