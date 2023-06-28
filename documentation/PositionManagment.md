@@ -45,10 +45,10 @@
   - Token X address
   - Token Y address
   - pool fee
-  - lower tick
+  - lower tick #because we need this and can't do logs
   - upper tick
-  - Amount of token X
-  - Amount of token Y
+  - Amount of token X => Replace this
+  - Amount of token Y => Replace this
   - Min amount of token X (we will just put 0 here)
   - Min amount of token Y (we will just put 0 here)
 - _Returns_: the tokenId of the liquidity position
@@ -72,7 +72,10 @@
   and collects the tokens relative to a cleared position.
   Can only be called after the user has removed all liquidity
   from the position (removeLiquidity)
-- _Receives_: receives an array with: - tokenId of the position - Amount of token X to be collected - Amount of token Y to be collected
+- _Receives_: receives an array with:
+  - tokenId of the position
+  - Amount of token X to be collected => Liquidity
+  - Amount of token Y to be collected => Liquidity
 - _Returns_: the amounts of tokenX and token Y that were collected
 
 ### addLiquidity
@@ -82,12 +85,11 @@
   Does not mint any NFT.
 - _Receives_: receives an array with:
   - tokenId
-  - Amount of token X we want to add to the position
+  - Amount of token X we want to add to the position =>mint
   - Amount of token Y we want to add to the position
   - Min amount of token X we want to add to the position(we will just put 0 here)
   - Min amount of token Y we want to add to the position (we will just put 0 here)
 - _Returns_:
-
   - the new liquidity of the position
   - new amount of token X in the position
   - new amount of token Y in the position
@@ -98,7 +100,9 @@
 - _Function_: receives an array with parameters, and removes a specified amount of liquidity
   from an existing position.
   Does not burn any NFT.
-- _Receives_: receives an array with: - tokenId - liquidity amount we wish to remove
+- _Receives_: receives an array with:
+  - tokenId
+  - liquidity amount we wish to remove => we can get the whole liquidity _tokenIdToPosition_ and then do %
 - _Returns_:
   - new amount of token X in the position
   - new amount of token Y in the position
@@ -114,15 +118,8 @@
   2. Call collect
   3. Call burn
 - To integrate liquidity:
-  1. The user specifies percenatge of slippage we his comfortable with
+  1. The user specifies percentage of slippage we his comfortable with
   2. When sending the _params_ to _singleSwap_, multiply the S0 current square root price by the root of 1-slippage
-
-## Questions:
-
-- Vtho produced by VET in pools. Is the contract the owner? Can the contract pay for txs?
-- Can we use the Vechain stablecoin as an on-ramp?
-- Multiple swaps at one time using multi-clause calls?
-- Slippage prediction?
 
 # Tests
 

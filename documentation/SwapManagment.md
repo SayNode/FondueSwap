@@ -14,7 +14,7 @@
   - Min amount of token Y the swapper is willing to receive
 - _Returns_: the amount of token Y received
 
-### swap
+### swapMulti
 
 - _Use_: Contract alteration
 - _Function_: receives an array with parameters and preforms a swap across multiple pools, to compensate for pools that do not exist
