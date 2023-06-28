@@ -103,7 +103,7 @@ contract NFT is ERC721 {
     ///  not contract-to-contract calls.
     function tokensOfOwner(
         address _owner
-    ) external view returns (uint256[] memory ownerTokens) {
+    ) public view returns (uint256[] memory ownerTokens) {
         uint256 tokenCount = balanceOf(_owner);
 
         if (tokenCount == 0) {
@@ -349,6 +349,61 @@ contract NFT is ERC721 {
             tokensOwed1,
             tokenPosition.lowerTick,
             tokenPosition.upperTick
+        );
+    }
+
+    function usertoAllPositions(
+        address user
+    )
+        public
+        view
+        returns (
+            address[] memory,
+            uint128[] memory,
+            uint128[] memory,
+            uint128[] memory,
+            int24[] memory,
+            int24[] memory
+        )
+    {
+        uint256[] memory _tokensOfOwner = tokensOfOwner(user);
+        address[] memory poolAdresses = new address[](_tokensOfOwner.length);
+        uint128[] memory liquidities = new uint128[](_tokensOfOwner.length);
+        uint128[] memory _tokensOwed0 = new uint128[](_tokensOfOwner.length);
+        uint128[] memory _tokensOwed1 = new uint128[](_tokensOfOwner.length);
+        int24[] memory lowerTicks = new int24[](_tokensOfOwner.length);
+        int24[] memory upperTicks = new int24[](_tokensOfOwner.length);
+
+        for (uint i = 0; i < _tokensOfOwner.length; ++i) {
+            HelpFunctions.TokenPosition memory tokenPosition = positions[
+                _tokensOfOwner[i]
+            ];
+            if (tokenPosition.pool == address(0x00))
+                revert HelpFunctions.WrongToken();
+
+            IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+            (
+                uint128 liquidity,
+                ,
+                ,
+                uint128 tokensOwed0,
+                uint128 tokensOwed1
+            ) = pool.positions(_poolPositionKey(tokenPosition));
+
+            poolAdresses[i] = tokenPosition.pool;
+            liquidities[i] = liquidity;
+            _tokensOwed0[i] = tokensOwed0;
+            _tokensOwed1[i] = tokensOwed1;
+            lowerTicks[i] = tokenPosition.lowerTick;
+            upperTicks[i] = tokenPosition.upperTick;
+        }
+        return (
+            poolAdresses,
+            liquidities,
+            _tokensOwed0,
+            _tokensOwed1,
+            lowerTicks,
+            upperTicks
         );
     }
 
