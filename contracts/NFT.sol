@@ -37,12 +37,6 @@ contract NFT is ERC721 {
     /*
     Structs
     */
-    struct CollectParams {
-        uint256 tokenId;
-        uint128 amount0;
-        uint128 amount1;
-    }
-
     struct AddLiquidityParams {
         uint256 tokenId;
         uint256 amount0Desired;
@@ -209,33 +203,32 @@ contract NFT is ERC721 {
         totalSupply--;
     }
 
-    /// @notice collects the tokens relative to a cleared position.
-    /// @param params: an array with the following parameters:
-    ///             tokenId: the token Id of the position we wish to collect
-    ///             amount0: amount of token 0 we want to collect
-    ///             amount1: amount of token 1 we want to collect
-    /// @dev Can only be called after the user has removed all liquidity from the position
+    /// @notice collects the tokens relative to a cleared (or partially cleared) position.
+    /// @param tokenId: the token Id of the position we wish to collect
+    /// @dev Can only be called after the user has removed some liquidity from the position
     function collect(
-        CollectParams memory params
+        uint256 tokenId
     )
         public
-        isApprovedOrOwner(params.tokenId)
+        isApprovedOrOwner(tokenId)
         returns (uint128 amount0, uint128 amount1)
     {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[
-            params.tokenId
-        ];
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 
+        (, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool.positions(
+            _poolPositionKey(tokenPosition)
+        );
+
         (amount0, amount1) = pool.collect(
             msg.sender,
             tokenPosition.lowerTick,
             tokenPosition.upperTick,
-            params.amount0,
-            params.amount1
+            tokensOwed0,
+            tokensOwed1
         );
     }
 

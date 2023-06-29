@@ -246,7 +246,7 @@ def collectLiq(ABPool, NFTContract, minter, tokenID):
     lowerTick = pos[4]
     upperTick = pos[5]
 
-    NFTContract.collect([tokenID, tokensOwed0, tokensOwed1],{"from":minter})
+    NFTContract.collect(tokenID,{"from":minter})
     chain.sleep(30)
     pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
     assert pos[0] == ABPool
@@ -278,9 +278,13 @@ def test_updatePositions(Atoken, Btoken, NFTContract, deployLibrary, ABPool, set
     with brownie.reverts(encode_custom_error('NFT', 'NotAuthorized', '')):
         remLiq(ABPool,NFTContract, Alice, 5)
 
+    print('----------------\n \n Get Owed Tokens Before Removing Liq')
+    print(NFTContract.tokenIDtoPosition(0,{"from": Alice}))
     #Remove all liquidity from Position 0
     remLiq(ABPool,NFTContract, Alice, 0)
 
+    print('----------------\n \n Get Owed Tokens After Removing Liq')
+    print(NFTContract.tokenIDtoPosition(0,{"from": Alice}))
     #Should revert the burn because the position is not cleared
     with brownie.reverts(encode_custom_error('NFT', 'PositionNotCleared', '')):
         NFTContract.burn(0,{"from": Alice})

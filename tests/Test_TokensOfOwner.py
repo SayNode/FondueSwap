@@ -365,7 +365,7 @@ def collectLiq(ABPool, NFTContract, minter, tokenID):
     lowerTick = pos[4]
     upperTick = pos[5]
 
-    NFTContract.collect([tokenID, tokensOwed0, tokensOwed1],{"from":minter})
+    NFTContract.collect(tokenID,{"from":minter})
     chain.sleep(30)
     pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
     assert pos[0] == ABPool
@@ -374,7 +374,7 @@ def collectLiq(ABPool, NFTContract, minter, tokenID):
     assert pos[3] == 0
     assert pos[4] == lowerTick
     assert pos[5] == upperTick
-
+    
 def test_tokensOwned(Atoken, Btoken, ABPool,
                 Xtoken, Ytoken, XYPool,  
                 NFTContract, deployLibrary, swapManagerContract, 
