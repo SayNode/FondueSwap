@@ -352,7 +352,7 @@ contract NFT is ERC721 {
         );
     }
 
-    function usertoAllPositions(
+    function userToAllPositions(
         address user
     )
         public
