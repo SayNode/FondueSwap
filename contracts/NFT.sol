@@ -87,46 +87,6 @@ contract NFT is ERC721 {
     }
 
     /*
-    External
-    */
-    /// @notice Returns a list of all Liquidity Token IDs assigned to an address.
-    /// @param _owner The owner whose nfts we are interested in.
-    /// @dev This method MUST NEVER be called by smart contract code. First, it's fairly
-    ///  expensive (it walks the entire token array looking for tokens belonging to owner),
-    ///  but it also returns a dynamic array, which is only supported for web3 calls, and
-    ///  not contract-to-contract calls.
-    function tokensOfOwner(
-        address _owner
-    ) public view returns (uint256[] memory ownerTokens) {
-        uint256 tokenCount = balanceOf(_owner);
-
-        if (tokenCount == 0) {
-            // Return an empty array
-            return new uint256[](0);
-        } else {
-            uint256[] memory result = new uint256[](tokenCount);
-            uint256 totalTokens = nextTokenId;
-            uint256 resultIndex = 0;
-
-            // We count on the fact that all tokens have IDs starting at 0 and increasing
-            // sequentially up to the totalTokens count.
-            uint256 tokenId;
-
-            while (resultIndex < totalTokens && tokenId < totalTokens) {
-                if (burnedIds[tokenId] != true) {
-                    if (ownerOf(tokenId) == _owner) {
-                        result[resultIndex] = tokenId;
-                        resultIndex++;
-                    }
-                }
-                tokenId++;
-            }
-
-            return result;
-        }
-    }
-
-    /*
     Public 
     */
     /// @notice Used for setting new positions. Mints an NFT connected to the created position
@@ -323,6 +283,44 @@ contract NFT is ERC721 {
     /*
     Public - View
      */
+
+    /// @notice Returns a list of all Liquidity Token IDs assigned to an address.
+    /// @param _owner The owner whose nfts we are interested in.
+    /// @dev This method MUST NEVER be called by smart contract code. First, it's fairly
+    ///  expensive (it walks the entire token array looking for tokens belonging to owner),
+    ///  but it also returns a dynamic array, which is only supported for web3 calls, and
+    ///  not contract-to-contract calls.
+    function tokensOfOwner(
+        address _owner
+    ) public view returns (uint256[] memory ownerTokens) {
+        uint256 tokenCount = balanceOf(_owner);
+
+        if (tokenCount == 0) {
+            // Return an empty array
+            return new uint256[](0);
+        } else {
+            uint256[] memory result = new uint256[](tokenCount);
+            uint256 totalTokens = nextTokenId;
+            uint256 resultIndex = 0;
+
+            // We count on the fact that all tokens have IDs starting at 0 and increasing
+            // sequentially up to the totalTokens count.
+            uint256 tokenId;
+
+            while (resultIndex < totalTokens && tokenId < totalTokens) {
+                if (burnedIds[tokenId] != true) {
+                    if (ownerOf(tokenId) == _owner) {
+                        result[resultIndex] = tokenId;
+                        resultIndex++;
+                    }
+                }
+                tokenId++;
+            }
+
+            return result;
+        }
+    }
+
     /// @notice receives a tokenId and returns all the information regarding that tokens position.
     /// @param tokenId: the token Id
     function tokenIDtoPosition(
@@ -345,6 +343,8 @@ contract NFT is ERC721 {
         );
     }
 
+    /// @notice receives an user address and returns all the information regarding all the token positions he has.
+    /// @param user: address of an user
     function userToAllPositions(
         address user
     )
