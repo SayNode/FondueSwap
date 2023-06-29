@@ -36,6 +36,18 @@
   - lower tick
   - upper tick
 
+### userToAllPositions
+
+- _Use_: Frontend
+- _Function_: receives an user address and returns all the information regarding all the token positions he has
+- _Receives_: an user address
+- _Returns_:
+  - an array of the pool each position belongs to
+  - an array of the liquidity of each position
+  - an array of the tokens the user can withdraw+fees earned (both for token X and token Y)
+  - an array of the lower ticks
+  - an array of the upper ticks
+
 ### mint
 
 - _Use_: Contract alteration
@@ -68,14 +80,12 @@
 ### collect
 
 - _Use_: Contract alteration
-- _Function_: receives an array with parameters,
-  and collects the tokens relative to a cleared position.
-  Can only be called after the user has removed all liquidity
+- _Function_: receives a tokenID,
+  and collects the tokens relative to a cleared (or partially) position.
+  Can only be called after the user has removed some liquidity
   from the position (removeLiquidity)
-- _Receives_: receives an array with:
+- _Receives_:
   - tokenId of the position
-  - Amount of token X to be collected => Liquidity
-  - Amount of token Y to be collected => Liquidity
 - _Returns_: the amounts of tokenX and token Y that were collected
 
 ### addLiquidity
