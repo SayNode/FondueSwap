@@ -66,4 +66,3 @@ def decodeError(encodedError):
                 print('Error name:',name,', Encoded: "typed error: 0x'+error_signature_hex+'"')
         
     return 'error not found'
-decodeError('0xd89cc676')

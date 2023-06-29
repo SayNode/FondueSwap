@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.14;
 
+import "./HelpFunctions.sol";
+
 import "./interfaces/IUniswapV3Pool.sol";
 
+import "./lib/Math.sol";
 import "./lib/Path.sol";
 import "./lib/PoolAddress.sol";
 import "./lib/TickMath.sol";
+import "./lib/LiquidityMath.sol";
 
 contract Quoter {
     using Path for bytes;
@@ -18,10 +22,91 @@ contract Quoter {
         uint160 sqrtPriceLimitX96;
     }
 
+    struct LiqInputTokenParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        int24 lowerTick;
+        int24 upperTick;
+        uint256 amountInDesired;
+    }
+
     address public immutable factory;
 
     constructor(address factory_) {
         factory = factory_;
+    }
+
+    function quoteLiqInputToken0(
+        LiqInputTokenParams memory params
+    ) external view returns (uint256 amount1) {
+        uint128 liqY = LiquidityMath.getLiquidityForAmount0(
+            TickMath.getSqrtRatioAtTick(params.lowerTick),
+            TickMath.getSqrtRatioAtTick(params.upperTick),
+            params.amountInDesired
+        );
+
+        IUniswapV3Pool pool = HelpFunctions._getPool(
+            factory,
+            params.tokenIn,
+            params.tokenOut,
+            params.fee
+        );
+
+        (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
+
+        if (tick < params.lowerTick) {
+            amount1 = 0;
+        } else if (tick < params.upperTick) {
+            amount1 = Math.calcAmount1Delta(
+                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                sqrtPriceX96,
+                liqY,
+                false
+            );
+        } else {
+            amount1 = Math.calcAmount1Delta(
+                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                TickMath.getSqrtRatioAtTick(params.upperTick),
+                liqY,
+                false
+            );
+        }
+    }
+
+    function quoteLiqInputToken1(
+        LiqInputTokenParams memory params
+    ) public view returns (uint256 amount0) {
+        uint128 liqX = LiquidityMath.getLiquidityForAmount1(
+            TickMath.getSqrtRatioAtTick(params.lowerTick),
+            TickMath.getSqrtRatioAtTick(params.upperTick),
+            params.amountInDesired
+        );
+
+        IUniswapV3Pool pool = HelpFunctions._getPool(
+            factory,
+            params.tokenIn,
+            params.tokenOut,
+            params.fee
+        );
+
+        (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
+
+        if (tick < params.lowerTick) {
+            amount0 = Math.calcAmount0Delta(
+                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                TickMath.getSqrtRatioAtTick(params.upperTick),
+                liqX,
+                true
+            );
+        } else if (tick < params.upperTick) {
+            amount0 = Math.calcAmount0Delta(
+                sqrtPriceX96,
+                TickMath.getSqrtRatioAtTick(params.upperTick),
+                liqX,
+                true
+            );
+        }
     }
 
     function quoteMulti(
@@ -77,7 +162,8 @@ contract Quoter {
         public
         returns (uint256 amountOut, uint160 sqrtPriceX96After, int24 tickAfter)
     {
-        IUniswapV3Pool pool = getPool(
+        IUniswapV3Pool pool = HelpFunctions._getPool(
+            factory,
             params.tokenIn,
             params.tokenOut,
             params.fee
@@ -102,42 +188,5 @@ contract Quoter {
         {} catch (bytes memory reason) {
             return abi.decode(reason, (uint256, uint160, int24));
         }
-    }
-
-    function uniswapV3SwapCallback(
-        int256 amount0Delta,
-        int256 amount1Delta,
-        bytes memory data
-    ) external view {
-        address pool = abi.decode(data, (address));
-
-        uint256 amountOut = amount0Delta > 0
-            ? uint256(-amount1Delta)
-            : uint256(-amount0Delta);
-
-        (uint160 sqrtPriceX96After, int24 tickAfter, , , ) = IUniswapV3Pool(
-            pool
-        ).slot0();
-
-        assembly {
-            let ptr := mload(0x40)
-            mstore(ptr, amountOut)
-            mstore(add(ptr, 0x20), sqrtPriceX96After)
-            mstore(add(ptr, 0x40), tickAfter)
-            revert(ptr, 96)
-        }
-    }
-
-    function getPool(
-        address token0,
-        address token1,
-        uint24 fee
-    ) internal view returns (IUniswapV3Pool pool) {
-        (token0, token1) = token0 < token1
-            ? (token0, token1)
-            : (token1, token0);
-        pool = IUniswapV3Pool(
-            PoolAddress.computeAddress(factory, token0, token1, fee)
-        );
     }
 }

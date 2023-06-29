@@ -75,7 +75,7 @@ def factoryContract():
     return factory
 
 @pytest.fixture
-def quoterContract(factoryContract):
+def quoterContract(factoryContract, deployLibrary):
     # fetch the account
     account = accounts[0]
 
@@ -208,6 +208,8 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     
     #Alice: First position
     set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18)
+    print('A tokens given to pool:' ,100_000*10**18-int(Atoken.balanceOf(Alice,{"from":account})))
+    print('B tokens given to pool:' ,100_000*10**18-int(Btoken.balanceOf(Alice,{"from":account})))
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
     assert tokens == 1
@@ -389,3 +391,14 @@ def test_quoter(Atoken, Btoken, ABPool,
     print('Price after AB:',1.0001**quotedVals[2][0])
     print('Price after BX:',1.0001**quotedVals[2][1])
     print('Price after XY:',1.0001**quotedVals[2][2])
+
+    #Test get Y amount
+    tokenIn=Atoken.address
+    tokenOut=Btoken.address
+    fee=500
+    lowerTick=84220
+    upperTick=86130
+    amountInDesired=1*10**18
+
+    quoteInput0 = quoterContract.quoteLiqInputToken0([tokenIn, tokenOut, fee, lowerTick, upperTick, amountInDesired], {"from":account})
+    print(quoteInput0)
