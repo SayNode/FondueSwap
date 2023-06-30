@@ -58,11 +58,10 @@ contract Quoter {
         if (tick < params.lowerTick) {
             amount1 = 0;
         } else if (tick < params.upperTick) {
-            amount1 = Math.calcAmount1Delta(
-                TickMath.getSqrtRatioAtTick(params.lowerTick),
-                sqrtPriceX96,
-                liqX,
-                false
+            amount1 = PRBMath.mulDiv(
+                uint256(sqrtPriceX96),
+                uint256(params.amountInDesired),
+                uint256(2 ** 96)
             );
 
             uint128 liquidity = LiquidityMath.getLiquidityForAmounts(
@@ -70,7 +69,7 @@ contract Quoter {
                 TickMath.getSqrtRatioAtTick(params.lowerTick),
                 TickMath.getSqrtRatioAtTick(params.upperTick),
                 params.amountInDesired,
-                amount1
+                amount1 ** 2
             );
             amount1 = Math.calcAmount1Delta(
                 TickMath.getSqrtRatioAtTick(params.lowerTick),
