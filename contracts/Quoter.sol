@@ -189,4 +189,25 @@ contract Quoter {
             return abi.decode(reason, (uint256, uint160, int24));
         }
     }
+
+    function uniswapV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes memory data
+    ) external view {
+        address pool = abi.decode(data, (address));
+        uint256 amountOut = amount0Delta > 0
+            ? uint256(-amount1Delta)
+            : uint256(-amount0Delta);
+        (uint160 sqrtPriceX96After, int24 tickAfter, , , ) = IUniswapV3Pool(
+            pool
+        ).slot0();
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, amountOut)
+            mstore(add(ptr, 0x20), sqrtPriceX96After)
+            mstore(add(ptr, 0x40), tickAfter)
+            revert(ptr, 96)
+        }
+    }
 }

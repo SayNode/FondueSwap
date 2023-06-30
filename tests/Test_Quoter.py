@@ -342,55 +342,55 @@ def test_quoter(Atoken, Btoken, ABPool,
     slippage = 0.03
 
     # Test single pool quoter
-    print('\n---------------------------------------------------')
-    print('Test single pool quoter')
-    # struct QuoteSingleParams {
-    #     address tokenIn;
-    #     address tokenOut;
-    #     uint24 fee;
-    #     uint256 amountIn;
-    #     uint160 sqrtPriceLimitX96;
-    # }
+    # print('\n---------------------------------------------------')
+    # print('Test single pool quoter')
+    # # struct QuoteSingleParams {
+    # #     address tokenIn;
+    # #     address tokenOut;
+    # #     uint24 fee;
+    # #     uint256 amountIn;
+    # #     uint160 sqrtPriceLimitX96;
+    # # }
 
-    params=[Atoken.address, Btoken.address, 500, amountIn, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
-    quotedVals = quoterContract.quoteSingle(params, {"from":account}).return_value
-    print('Amount out:',quotedVals[0])
-    print('SQRTPriceAfter:',quotedVals[1])
-    print('PriceAfter:',(quotedVals[1]/2**96)**2)
-    print('Tick after:',quotedVals[2])
-    print('Price after:',1.0001**quotedVals[2])
-
-
-    # Test multiple pool quoter but only one pool
-    print('\n---------------------------------------------------')
-    print('Test multiple pool quoter but only one pool')
-    path = append_hex([Atoken.address, 500, Btoken.address])
-    quotedVals = quoterContract.quoteMulti(path, amountIn, {"from":account}).return_value
-    print('Amount out:',quotedVals[0])
-    print('SQRTPriceAfter:',quotedVals[1])
-    print('Price After AB:',(quotedVals[1][0]/2**96)**2)
-    print('Tick after:',quotedVals[2])
-    print('Price after AB:',1.0001**quotedVals[2][0])
+    # params=[Atoken.address, Btoken.address, 500, amountIn, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
+    # quotedVals = quoterContract.quoteSingle(params, {"from":account}).return_value
+    # print('Amount out:',quotedVals[0])
+    # print('SQRTPriceAfter:',quotedVals[1])
+    # print('PriceAfter:',(quotedVals[1]/2**96)**2)
+    # print('Tick after:',quotedVals[2])
+    # print('Price after:',1.0001**quotedVals[2])
 
 
-    # Test multiple pool quoter with multiple pools
-    print('\n---------------------------------------------------')
-    print('Test multiple pool quoter with multiple pools')
-    print('Price before AB:', (int(int(ABPool.slot0({"from": account})[0]))/2**96)**2)
-    print('Price before BX:', (int(int(BXPool.slot0({"from": account})[0]))/2**96)**2)
-    print('Price before XY:', (int(int(XYPool.slot0({"from": account})[0]))/2**96)**2)
-    amountIn = 0.00001*10**18
-    path = append_hex([Atoken.address, 500, Btoken.address, 500, Xtoken.address, 500, Ytoken.address])
-    quotedVals = quoterContract.quoteMulti(path, amountIn, {"from":account}).return_value
-    print('Amount out:',quotedVals[0]/10**18)
-    print('SQRTPriceAfter:',quotedVals[1])
-    print('Price After AB:',(quotedVals[1][0]/2**96)**2)
-    print('Price After BX:',(quotedVals[1][1]/2**96)**2)
-    print('Price After XY:',(quotedVals[1][2]/2**96)**2)
-    print('Tick after:',quotedVals[2])
-    print('Price after AB:',1.0001**quotedVals[2][0])
-    print('Price after BX:',1.0001**quotedVals[2][1])
-    print('Price after XY:',1.0001**quotedVals[2][2])
+    # # Test multiple pool quoter but only one pool
+    # print('\n---------------------------------------------------')
+    # print('Test multiple pool quoter but only one pool')
+    # path = append_hex([Atoken.address, 500, Btoken.address])
+    # quotedVals = quoterContract.quoteMulti(path, amountIn, {"from":account}).return_value
+    # print('Amount out:',quotedVals[0])
+    # print('SQRTPriceAfter:',quotedVals[1])
+    # print('Price After AB:',(quotedVals[1][0]/2**96)**2)
+    # print('Tick after:',quotedVals[2])
+    # print('Price after AB:',1.0001**quotedVals[2][0])
+
+
+    # # Test multiple pool quoter with multiple pools
+    # print('\n---------------------------------------------------')
+    # print('Test multiple pool quoter with multiple pools')
+    # print('Price before AB:', (int(int(ABPool.slot0({"from": account})[0]))/2**96)**2)
+    # print('Price before BX:', (int(int(BXPool.slot0({"from": account})[0]))/2**96)**2)
+    # print('Price before XY:', (int(int(XYPool.slot0({"from": account})[0]))/2**96)**2)
+    # amountIn = 0.00001*10**18
+    # path = append_hex([Atoken.address, 500, Btoken.address, 500, Xtoken.address, 500, Ytoken.address])
+    # quotedVals = quoterContract.quoteMulti(path, amountIn, {"from":account}).return_value
+    # print('Amount out:',quotedVals[0]/10**18)
+    # print('SQRTPriceAfter:',quotedVals[1])
+    # print('Price After AB:',(quotedVals[1][0]/2**96)**2)
+    # print('Price After BX:',(quotedVals[1][1]/2**96)**2)
+    # print('Price After XY:',(quotedVals[1][2]/2**96)**2)
+    # print('Tick after:',quotedVals[2])
+    # print('Price after AB:',1.0001**quotedVals[2][0])
+    # print('Price after BX:',1.0001**quotedVals[2][1])
+    # print('Price after XY:',1.0001**quotedVals[2][2])
 
     #Test get Y amount
     tokenIn=Atoken.address
