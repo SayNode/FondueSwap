@@ -188,7 +188,7 @@ def set_pos(NFTContract, minter, Onetoken, Twotoken, fee, lowerTick, upperTick, 
     return pos
 
 @pytest.fixture
-def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
+def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool, quoterContract):
     # fetch the accounts
     account = accounts[0]
 
@@ -206,10 +206,18 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool):
     print("Slot0:",ABPool.slot0({"from": account}))
     assert ABPool.slot0({"from": account})[0] != (0)
     
+    tokenIn=Atoken.address
+    tokenOut=Btoken.address
+    fee=500
+    lowerTick=84220
+    upperTick=86130
+    amountInDesired=1*10**18
+
+    quoteInput0 = quoterContract.quoteLiqInputToken0([tokenIn, tokenOut, fee, lowerTick, upperTick, amountInDesired], {"from":account})
     #Alice: First position
-    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84220, 86130, 1*10**18, 5000*10**18)
-    print('A tokens given to pool:' ,100_000*10**18-int(Atoken.balanceOf(Alice,{"from":account})))
-    print('B tokens given to pool:' ,100_000*10**18-int(Btoken.balanceOf(Alice,{"from":account})))
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84220, 86130, amountInDesired, int(quoteInput0))
+    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account})))
+    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account})))
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
     assert tokens == 1
