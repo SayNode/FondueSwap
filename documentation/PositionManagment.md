@@ -131,7 +131,7 @@
   1. The user specifies percentage of slippage we his comfortable with
   2. When sending the _params_ to _singleSwap_, multiply the S0 current square root price by the root of 1-slippage
 - To remove only the earned fees:
-  1. Call _removeLiq_ but use 0 as liquidity. This will update the user owned postion and hence the fee amount. After that call _collect_
+  1. Call _removeLiquidity_ but use 0 as liquidity. This will update the user owned position and hence the fee amount. After that call _collect_
 
 # Tests
 
