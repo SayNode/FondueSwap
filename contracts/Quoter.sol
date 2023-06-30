@@ -39,7 +39,7 @@ contract Quoter {
 
     function quoteLiqInputToken0(
         LiqInputTokenParams memory params
-    ) external view returns (int256 amount1) {
+    ) external view returns (uint256 amount1) {
         uint128 liqX = LiquidityMath.getLiquidityForAmount1(
             TickMath.getSqrtRatioAtTick(params.lowerTick),
             TickMath.getSqrtRatioAtTick(params.upperTick),
@@ -61,13 +61,29 @@ contract Quoter {
             amount1 = Math.calcAmount1Delta(
                 TickMath.getSqrtRatioAtTick(params.lowerTick),
                 sqrtPriceX96,
-                int128(liqX)
+                liqX,
+                false
+            );
+
+            uint128 liquidity = LiquidityMath.getLiquidityForAmounts(
+                sqrtPriceX96,
+                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                TickMath.getSqrtRatioAtTick(params.upperTick),
+                params.amountInDesired,
+                amount1
+            );
+            amount1 = Math.calcAmount1Delta(
+                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                sqrtPriceX96,
+                liquidity,
+                false
             );
         } else {
             amount1 = Math.calcAmount1Delta(
                 TickMath.getSqrtRatioAtTick(params.lowerTick),
                 TickMath.getSqrtRatioAtTick(params.upperTick),
-                int128(liqX)
+                liqX,
+                false
             );
         }
     }

@@ -95,6 +95,55 @@ def NFTContract(factoryContract, deployLibrary):
     print(f"NFT contract deployed at {nft}")
     return nft
 
+def remLiq(ABPool, NFTContract, minter, tokenID):
+
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    liquidity =  pos[1]
+    tokensOwed0 = pos[2]
+    tokensOwed1 = pos[3]
+    lowerTick = pos[4]
+    upperTick = pos[5]
+
+    NFTContract.removeLiquidity([tokenID, liquidity],{"from": minter})
+    chain.sleep(30)
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    currentPrice = (ABPool.slot0()[0]/(2**96))**2
+    currentTick = math.log(currentPrice,1.0001)
+    assert pos[0] == ABPool
+    assert pos[1] == 0
+    if(lowerTick<=currentTick and upperTick>=currentTick):
+        assert pos[2] != tokensOwed0
+        assert pos[3] != tokensOwed1
+    elif (lowerTick>=currentTick and upperTick>=currentTick):
+        assert pos[2] != tokensOwed0
+        assert pos[3] == tokensOwed1
+    elif (lowerTick<=currentTick and upperTick<=currentTick ):
+        assert pos[2] == tokensOwed0
+        assert pos[3] != tokensOwed1
+    assert pos[4] == lowerTick
+    assert pos[5] == upperTick
+
+def collectLiq(ABPool, NFTContract, minter, tokenID):
+
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+
+    tokensOwed0 = pos[2]
+    tokensOwed1 = pos[3]
+    lowerTick = pos[4]
+    upperTick = pos[5]
+
+    NFTContract.collect(tokenID,{"from":minter})
+    chain.sleep(30)
+    pos = NFTContract.tokenIDtoPosition(tokenID, {"from": minter})
+    assert pos[0] == ABPool
+    assert pos[1] == 0
+    assert pos[2] == 0
+    assert pos[3] == 0
+    assert pos[4] == lowerTick
+    assert pos[5] == upperTick
+
 @pytest.fixture
 def ABPool(Atoken, Btoken, factoryContract):
     
@@ -443,12 +492,11 @@ def test_swapAB(Atoken, Btoken, ABPool,
     params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
     swapManagerContract.swapSingle(params, {"from": Bob} )
 
+
     print(init_Bob_balance_tokenA)
     print(Atoken.balanceOf(Bob))
     print(init_Bob_balance_tokenB)
     print(Btoken.balanceOf(Bob))
     assert Atoken.balanceOf(Bob)<init_Bob_balance_tokenA
     assert Btoken.balanceOf(Bob)>init_Bob_balance_tokenB
-
-    #Check if Alice gets the correct rewards after withdrawing her position
 

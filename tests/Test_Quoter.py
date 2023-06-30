@@ -216,8 +216,8 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool, quoter
     quoteInput0 = quoterContract.quoteLiqInputToken0([tokenIn, tokenOut, fee, lowerTick, upperTick, amountInDesired], {"from":account})
     #Alice: First position
     set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84220, 86130, amountInDesired, int(quoteInput0))
-    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account})))
-    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account})))
+    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18))
+    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18))
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
     assert tokens == 1
