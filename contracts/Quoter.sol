@@ -58,19 +58,20 @@ contract Quoter {
         if (tick < params.lowerTick) {
             amount1 = 0;
         } else if (tick < params.upperTick) {
-            amount1 = PRBMath.mulDiv(
+            amount1 = Math.mulDivRoundingUp(
                 uint256(sqrtPriceX96),
                 uint256(params.amountInDesired),
                 uint256(2 ** 96)
             );
 
-            uint128 liquidity = LiquidityMath.getLiquidityForAmounts(
+            uint128 liquidity = _getLiquidity(
+                params.lowerTick,
+                params.upperTick,
                 sqrtPriceX96,
-                TickMath.getSqrtRatioAtTick(params.lowerTick),
-                TickMath.getSqrtRatioAtTick(params.upperTick),
                 params.amountInDesired,
                 amount1 ** 2
             );
+
             amount1 = Math.calcAmount1Delta(
                 TickMath.getSqrtRatioAtTick(params.lowerTick),
                 sqrtPriceX96,
@@ -89,8 +90,8 @@ contract Quoter {
 
     function quoteLiqInputToken1(
         LiqInputTokenParams memory params
-    ) public view returns (int256 amount0) {
-        uint128 liqX = LiquidityMath.getLiquidityForAmount1(
+    ) public view returns (uint256 amount0) {
+        uint128 liqY = LiquidityMath.getLiquidityForAmount1(
             TickMath.getSqrtRatioAtTick(params.lowerTick),
             TickMath.getSqrtRatioAtTick(params.upperTick),
             params.amountInDesired
@@ -109,15 +110,46 @@ contract Quoter {
             amount0 = Math.calcAmount0Delta(
                 TickMath.getSqrtRatioAtTick(params.lowerTick),
                 TickMath.getSqrtRatioAtTick(params.upperTick),
-                int128(liqX)
+                liqY,
+                false
             );
         } else if (tick < params.upperTick) {
+            amount0 = Math.divRoundingUp(
+                params.amountInDesired,
+                Math.divRoundingUp(uint256(sqrtPriceX96), uint256(2 ** 96))
+            );
+
+            uint128 liquidity = _getLiquidity(
+                params.lowerTick,
+                params.upperTick,
+                sqrtPriceX96,
+                params.amountInDesired,
+                amount0 ** 2
+            );
+
             amount0 = Math.calcAmount0Delta(
                 sqrtPriceX96,
                 TickMath.getSqrtRatioAtTick(params.upperTick),
-                int128(liqX)
+                liquidity,
+                false
             );
         }
+    }
+
+    function _getLiquidity(
+        int24 lowerTick,
+        int24 upperTick,
+        uint160 sqrtPriceX96,
+        uint256 amountInDesired,
+        uint256 amountOutDesired
+    ) internal pure returns (uint128 liquidity) {
+        liquidity = LiquidityMath.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtRatioAtTick(lowerTick),
+            TickMath.getSqrtRatioAtTick(upperTick),
+            amountInDesired,
+            amountOutDesired
+        );
     }
 
     function quoteMulti(
