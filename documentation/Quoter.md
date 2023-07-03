@@ -2,10 +2,37 @@
 
 ## Functions to interact with:
 
+### quoteLiqInputToken0
+
+- _Use_: Frontend
+- _Function_: receives an array with parameters and tells us how much of tokenY we will provide when adding liquidity/minting a position with a certain amount of Xtoken
+- _Receives_: receives an array with:
+  - Token X address
+  - Token Y address
+  - pool fee
+  - Lower tick of position
+  - Upper tick of position
+- _Returns_:
+  - amount1: the amount of token Y needed to add the amount of liquidity
+
+### quoteLiqInputToken1
+
+- _Use_: Frontend
+- _Function_: receives an array with parameters and tells us how much of token X we will provide when adding liquidity/minting a position with a certain amount of token Y
+- _Receives_: receives an array with:
+  - Token Y address
+  - Token X address
+  - pool fee
+  - Lower tick of position
+  - Upper tick of position
+- _Returns_:
+  - amount0: the amount of token X needed to add the amount of liquidity
+  -
+
 ### quoteSingle
 
 - _Use_: Frontend
-- _Function_: receives an array with parameters and preforms tells us the outcome of a swap
+- _Function_: receives an array with parameters and tells us the outcome of a swap
 - _Receives_: receives an array with:
   - Token X address
   - Token Y address
