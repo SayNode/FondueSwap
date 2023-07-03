@@ -214,6 +214,10 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool, quoter
     amountInDesired=1*10**18
 
     quoteInput0 = quoterContract.quoteLiqInputToken0([tokenIn, tokenOut, fee, lowerTick, upperTick, amountInDesired], {"from":account})
+    quoteInput1 = quoterContract.quoteLiqInputToken1([ tokenOut,tokenIn, fee, lowerTick, upperTick, 5000*10**18], {"from":account})
+    print("Quoted amount in:",int(amountInDesired)/(10**18),
+          "\nQuoted amount out:",int(quoteInput0)/(10**18),
+          "\nQuoted amount in 1:",int(quoteInput1)/(10**18))
     #Alice: First position
     set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84220, 86130, amountInDesired, int(quoteInput0))
     print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18))
@@ -235,11 +239,58 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool, quoter
     assert pos[5] == 86130
 
 
-    #Alice: Second position
-    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 81220, 82130, 0.1*10**18, 500*10**18)# bellow range
-    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 87220, 88130, 0.1*10**18, 500*10**18)#above range
-    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 84520, 85130, 0.01*10**18, 50*10**18)#within range
-    set_pos(NFTContract, Alice, Atoken, Btoken, 500, 80320, 81230, 1*10**18, 5000*10**18)#bellow range
+    #Bellow range x=0 and y>0
+    print('\nBellow range x=0 and y>0')
+    tokenIn=Atoken.address
+    tokenOut=Btoken.address
+    fee=500
+    lowerTick=81220
+    upperTick=82130
+    amountInDesired=0.1*10**18
+    contractABalanceBefore = int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    contractBBalanceBefore = int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, lowerTick, upperTick,  0, 500*10**18)# bellow range
+    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractABalanceBefore)
+    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractBBalanceBefore)
+
+    #Above range x>0 and y=0
+    print('\nAbove range x>0 and y=0')
+    lowerTick=87220
+    upperTick=88130
+    amountInDesired=0.1*10**18
+    contractABalanceBefore = int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    contractBBalanceBefore = int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, lowerTick, upperTick, amountInDesired, 0)# above range
+    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractABalanceBefore)
+    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractBBalanceBefore)
+
+    #In range x>0 and y>0
+    print('\nIn range x>0 and y>0, test quote1')
+    lowerTick=82520
+    upperTick=86630
+    amountInDesired=0.01*10**18
+    contractABalanceBefore = int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    contractBBalanceBefore = int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    quoteInput0 = quoterContract.quoteLiqInputToken0([tokenIn, tokenOut, fee, lowerTick, upperTick, amountInDesired], {"from":account})
+    quoteInput1 = quoterContract.quoteLiqInputToken1([ tokenOut,tokenIn, fee, lowerTick, upperTick, 50*10**18], {"from":account})
+    print("Quoted amount in:",int(amountInDesired)/(10**18),
+          "\nQuoted amount out:",int(quoteInput0)/(10**18),
+          "\nQuoted amount in 1:",int(quoteInput1)/(10**18))
+    # set_pos(NFTContract, Alice, Atoken, Btoken, 500, lowerTick, upperTick, amountInDesired, int(quoteInput0))# bellow range
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, lowerTick, upperTick, int(quoteInput1), 50*10**18)# bellow range
+    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractABalanceBefore)
+    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractBBalanceBefore)
+
+    #Bellow range x=0 and y>0
+    print('\nBellow range x=0 and y>0')
+    lowerTick=80320
+    upperTick=81230
+    amountInDesired=1*10**18
+    contractABalanceBefore = int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    contractBBalanceBefore = int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18)
+    set_pos(NFTContract, Alice, Atoken, Btoken, 500, lowerTick, upperTick, 0, 5000*10**18)# bellow range
+    print('A tokens given to pool:' ,int(Atoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractABalanceBefore)
+    print('B tokens given to pool:' ,int(Btoken.balanceOf(ABPool,{"from":account}))/(10**18) - contractBBalanceBefore)
 
     tokens = NFTContract.totalSupply( {"from": Alice} )
     assert tokens == 5
@@ -264,8 +315,8 @@ def init_setup_ABPool(Atoken, Btoken, NFTContract, deployLibrary, ABPool, quoter
     assert third_pos[5] == 88130
     fourth_pos = NFTContract.tokenIDtoPosition(3, {"from": Alice})
     assert fourth_pos[0] == ABPool
-    assert fourth_pos[4] == 84520
-    assert fourth_pos[5] == 85130
+    assert fourth_pos[4] == 82520
+    assert fourth_pos[5] == 86630
     fifth_pos = NFTContract.tokenIDtoPosition(4, {"from": Alice})
     assert fifth_pos[0] == ABPool
     assert fifth_pos[4] == 80320

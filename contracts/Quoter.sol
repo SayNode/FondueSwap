@@ -40,12 +40,6 @@ contract Quoter {
     function quoteLiqInputToken0(
         LiqInputTokenParams memory params
     ) external view returns (uint256 amount1) {
-        uint128 liqX = LiquidityMath.getLiquidityForAmount1(
-            TickMath.getSqrtRatioAtTick(params.lowerTick),
-            TickMath.getSqrtRatioAtTick(params.upperTick),
-            params.amountInDesired
-        );
-
         IUniswapV3Pool pool = HelpFunctions._getPool(
             factory,
             params.tokenIn,
@@ -55,9 +49,7 @@ contract Quoter {
 
         (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
 
-        if (tick < params.lowerTick) {
-            amount1 = 0;
-        } else if (tick < params.upperTick) {
+        if (tick < params.upperTick && tick > params.lowerTick) {
             amount1 = Math.mulDivRoundingUp(
                 uint256(sqrtPriceX96),
                 uint256(params.amountInDesired),
@@ -78,25 +70,12 @@ contract Quoter {
                 liquidity,
                 false
             );
-        } else {
-            amount1 = Math.calcAmount1Delta(
-                TickMath.getSqrtRatioAtTick(params.lowerTick),
-                TickMath.getSqrtRatioAtTick(params.upperTick),
-                liqX,
-                false
-            );
         }
     }
 
     function quoteLiqInputToken1(
         LiqInputTokenParams memory params
     ) public view returns (uint256 amount0) {
-        uint128 liqY = LiquidityMath.getLiquidityForAmount1(
-            TickMath.getSqrtRatioAtTick(params.lowerTick),
-            TickMath.getSqrtRatioAtTick(params.upperTick),
-            params.amountInDesired
-        );
-
         IUniswapV3Pool pool = HelpFunctions._getPool(
             factory,
             params.tokenIn,
@@ -106,14 +85,7 @@ contract Quoter {
 
         (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
 
-        if (tick < params.lowerTick) {
-            amount0 = Math.calcAmount0Delta(
-                TickMath.getSqrtRatioAtTick(params.lowerTick),
-                TickMath.getSqrtRatioAtTick(params.upperTick),
-                liqY,
-                false
-            );
-        } else if (tick < params.upperTick) {
+        if (tick < params.upperTick && tick > params.lowerTick) {
             amount0 = Math.divRoundingUp(
                 params.amountInDesired,
                 Math.divRoundingUp(uint256(sqrtPriceX96), uint256(2 ** 96))
@@ -123,8 +95,8 @@ contract Quoter {
                 params.lowerTick,
                 params.upperTick,
                 sqrtPriceX96,
-                params.amountInDesired,
-                amount0 ** 2
+                amount0 ** 2,
+                params.amountInDesired
             );
 
             amount0 = Math.calcAmount0Delta(
