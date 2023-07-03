@@ -58,6 +58,8 @@
 
 ## Frontend operations:
 
+- If the frontend wants to find the amount of token X or Y needed a specific add liquidity, just call
+  the quoteLiqInputToken0 or quoteLiqInputToken1
 - If the frontend wants to find the pool path for the multi pool swaps:
   1. Created pools should be save in a back end as nodes in a graph
   2. We should call the backend with 2 tokens and get the smallest path between them
@@ -71,5 +73,6 @@
 
 ### Normal Functioning
 
+- manual (log) tests for quoteLiqInputToken0 and quoteLiqInputToken1
 - quoteSingle
 - quoteMulti
