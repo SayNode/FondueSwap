@@ -166,26 +166,6 @@ contract NFT is ERC721 {
         totalSupply--;
     }
 
-    function _getFees(
-        uint256 tokenId
-    )
-        public
-        view
-        returns (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1)
-    {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
-        if (tokenPosition.pool == address(0x00))
-            revert HelpFunctions.WrongToken();
-
-        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
-
-        (updatedTokensOwed0, updatedTokensOwed1) = pool.getFees(
-            tokenPosition.lowerTick,
-            tokenPosition.upperTick,
-            address(this)
-        );
-    }
-
     /// @notice collects the tokens relative to a cleared (or partially cleared) position.
     /// @param tokenId: the token Id of the position we wish to collect
     /// @dev Can only be called after the user has removed some liquidity from the position
@@ -366,6 +346,28 @@ contract NFT is ERC721 {
         );
     }
 
+    /// @notice Gets a positions owed fees
+    /// @param tokenId The id of the NFT we wish to know the owed fees
+    function _getFees(
+        uint256 tokenId
+    )
+        public
+        view
+        returns (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1)
+    {
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+
+        (updatedTokensOwed0, updatedTokensOwed1) = pool.getFees(
+            tokenPosition.lowerTick,
+            tokenPosition.upperTick,
+            address(this)
+        );
+    }
+
     /// @notice receives an user address and returns all the information regarding all the token positions he has.
     /// @param user: address of an user
     function userToAllPositions(
@@ -387,6 +389,7 @@ contract NFT is ERC721 {
         uint128[] memory liquidities = new uint128[](_tokensOfOwner.length);
         uint128[] memory _tokensOwed0 = new uint128[](_tokensOfOwner.length);
         uint128[] memory _tokensOwed1 = new uint128[](_tokensOfOwner.length);
+
         int24[] memory lowerTicks = new int24[](_tokensOfOwner.length);
         int24[] memory upperTicks = new int24[](_tokensOfOwner.length);
 
@@ -421,6 +424,30 @@ contract NFT is ERC721 {
             lowerTicks,
             upperTicks
         );
+    }
+
+    /// @notice receives an user address and returns all the fees regarding all the token positions he has.
+    /// @param user: address of an user
+    function userToAllPositionsFees(
+        address user
+    ) public view returns (uint256[] memory, uint256[] memory) {
+        uint256[] memory _tokensOfOwner = tokensOfOwner(user);
+
+        uint256[] memory _updatedTokensOwed0 = new uint256[](
+            _tokensOfOwner.length
+        );
+        uint256[] memory _updatedTokensOwed1 = new uint256[](
+            _tokensOfOwner.length
+        );
+
+        for (uint i = 0; i < _tokensOfOwner.length; ++i) {
+            (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1) = _getFees(
+                _tokensOfOwner[i]
+            );
+            _updatedTokensOwed0[i] = updatedTokensOwed0;
+            _updatedTokensOwed1[i] = updatedTokensOwed1;
+        }
+        return (_updatedTokensOwed0, _updatedTokensOwed1);
     }
 
     /// @notice returns the URI of the image of an NFT token.

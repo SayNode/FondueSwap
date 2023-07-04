@@ -60,6 +60,7 @@ library Position {
         }
     }
 
+    //The same as update but it only simulates it, so we can grab the users owed fess
     function _simulateUpdate(
         Info storage self,
         uint256 feeGrowthInside0X128,

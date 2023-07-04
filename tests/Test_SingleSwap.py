@@ -490,6 +490,8 @@ def test_swapAB(Atoken, Btoken, ABPool,
 
     tx = NFTContract._getFees(0,{"from": Alice})
     print('Owed fees before swap:',int(tx[0])/10**18,'and',int(tx[1])/10**18)
+    tx = NFTContract.userToAllPositionsFees(Alice,{"from": Alice})
+    print('\nAll the users owed fees Before swap:', tx)
     #Should pass
     params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
     swapManagerContract.swapSingle(params, {"from": Bob} )
@@ -504,9 +506,13 @@ def test_swapAB(Atoken, Btoken, ABPool,
 
     tx = NFTContract._getFees(0,{"from": Alice})
     print('Owed fees After swap:',int(tx[0])/10**18,'and',int(tx[1])/10**18)
+    tx = NFTContract.userToAllPositionsFees(Alice,{"from": Alice})
+    print('\nAll the users owed fees After swap:', tx)
     NFTContract.removeLiquidity([0, 0],{"from": Alice})
     col = NFTContract.collect(0,{"from":Alice})
     print(col.return_value)
     tx = NFTContract._getFees(0,{"from": Alice})
     print('Owed fees After collecting:',int(tx[0])/10**18,'and',int(tx[1])/10**18)
+    tx = NFTContract.userToAllPositionsFees(Alice,{"from": Alice})
+    print('\nAll the users owed fees After collecting:', tx)
 
