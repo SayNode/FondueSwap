@@ -198,6 +198,11 @@
 
 # Instructions
 
+## Pool Factory
+
+- Create pool:
+  1. Call _createPool_ (PoolFactory.sol) with the token addresses and the intended fee
+
 ## NFT
 
 - User position info
