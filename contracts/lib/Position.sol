@@ -59,4 +59,37 @@ library Position {
             self.tokensOwed1 += tokensOwed1;
         }
     }
+
+    function _simulateUpdate(
+        Info storage self,
+        uint256 feeGrowthInside0X128,
+        uint256 feeGrowthInside1X128
+    )
+        internal
+        view
+        returns (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1)
+    {
+        uint128 tokensOwed0 = uint128(
+            PRBMath.mulDiv(
+                feeGrowthInside0X128 - self.feeGrowthInside0LastX128,
+                self.liquidity,
+                FixedPoint128.Q128
+            )
+        );
+        uint128 tokensOwed1 = uint128(
+            PRBMath.mulDiv(
+                feeGrowthInside1X128 - self.feeGrowthInside1LastX128,
+                self.liquidity,
+                FixedPoint128.Q128
+            )
+        );
+
+        if (tokensOwed0 > 0 || tokensOwed1 > 0) {
+            updatedTokensOwed0 = self.tokensOwed0 + tokensOwed0;
+            updatedTokensOwed1 = self.tokensOwed1 + tokensOwed1;
+        } else {
+            updatedTokensOwed0 = tokensOwed0;
+            updatedTokensOwed1 = tokensOwed1;
+        }
+    }
 }

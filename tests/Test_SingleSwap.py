@@ -488,6 +488,8 @@ def test_swapAB(Atoken, Btoken, ABPool,
     with brownie.reverts(encode_custom_error('Pool', 'NotEnoughLiquidity', '')):
         swapManagerContract.swapSingle(params, {"from": Bob} )
 
+    tx = NFTContract._getFees(0,{"from": Alice})
+    print('Owed fees before swap:',int(tx[0])/10**18,'and',int(tx[1])/10**18)
     #Should pass
     params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
     swapManagerContract.swapSingle(params, {"from": Bob} )
@@ -499,4 +501,12 @@ def test_swapAB(Atoken, Btoken, ABPool,
     print(Btoken.balanceOf(Bob))
     assert Atoken.balanceOf(Bob)<init_Bob_balance_tokenA
     assert Btoken.balanceOf(Bob)>init_Bob_balance_tokenB
+
+    tx = NFTContract._getFees(0,{"from": Alice})
+    print('Owed fees After swap:',int(tx[0])/10**18,'and',int(tx[1])/10**18)
+    NFTContract.removeLiquidity([0, 0],{"from": Alice})
+    col = NFTContract.collect(0,{"from":Alice})
+    print(col.return_value)
+    tx = NFTContract._getFees(0,{"from": Alice})
+    print('Owed fees After collecting:',int(tx[0])/10**18,'and',int(tx[1])/10**18)
 

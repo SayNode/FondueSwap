@@ -639,4 +639,38 @@ contract Pool is IUniswapV3Pool {
     function _blockTimestamp() internal view returns (uint32 timestamp) {
         timestamp = uint32(block.timestamp);
     }
+
+    function getFees(
+        int24 lowerTick,
+        int24 upperTick,
+        address owner
+    )
+        public
+        view
+        returns (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1)
+    {
+        Slot0 memory slot0_ = slot0;
+        uint256 feeGrowthGlobal0X128_ = feeGrowthGlobal0X128;
+        uint256 feeGrowthGlobal1X128_ = feeGrowthGlobal1X128;
+
+        Position.Info storage position = positions.get(
+            owner,
+            lowerTick,
+            upperTick
+        );
+
+        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) = ticks
+            .getFeeGrowthInside(
+                lowerTick,
+                upperTick,
+                slot0_.tick,
+                feeGrowthGlobal0X128_,
+                feeGrowthGlobal1X128_
+            );
+
+        (updatedTokensOwed0, updatedTokensOwed1) = position._simulateUpdate(
+            feeGrowthInside0X128,
+            feeGrowthInside1X128
+        );
+    }
 }

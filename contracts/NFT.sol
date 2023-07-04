@@ -6,9 +6,12 @@ import "./HelpFunctions.sol";
 
 import "./interfaces/IERC20.sol";
 import "./interfaces/IUniswapV3Pool.sol";
+
 import "./lib/LiquidityMath.sol";
 import "./lib/NFTRenderer.sol";
 import "./lib/TickMath.sol";
+import "./lib/Position.sol";
+import "./lib/Tick.sol";
 
 contract NFT is ERC721 {
     /*
@@ -161,6 +164,26 @@ contract NFT is ERC721 {
         burnedIds[tokenId] = true;
         _burn(tokenId);
         totalSupply--;
+    }
+
+    function _getFees(
+        uint256 tokenId
+    )
+        public
+        view
+        returns (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1)
+    {
+        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        if (tokenPosition.pool == address(0x00))
+            revert HelpFunctions.WrongToken();
+
+        IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+
+        (updatedTokensOwed0, updatedTokensOwed1) = pool.getFees(
+            tokenPosition.lowerTick,
+            tokenPosition.upperTick,
+            address(this)
+        );
     }
 
     /// @notice collects the tokens relative to a cleared (or partially cleared) position.
