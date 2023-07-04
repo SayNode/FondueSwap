@@ -36,6 +36,15 @@
   - lower tick
   - upper tick
 
+### \_getFees
+
+- _Use_: Frontend
+- _Function_: receives a tokenId and returns all the positions owed fees
+- _Receives_: a tokenId number
+- _Returns_:
+  - the token X fees each position is owed
+  - the token Y fees each position is owed
+
 ### userToAllPositions
 
 - _Use_: Frontend
@@ -47,6 +56,15 @@
   - an array of the tokens the user can withdraw+fees earned (both for token X and token Y)
   - an array of the lower ticks
   - an array of the upper ticks
+
+### userToAllPositionsFees
+
+- _Use_: Frontend
+- _Function_: receives an user address and returns all the fees regarding all the token positions he has
+- _Receives_: an user address
+- _Returns_:
+  - an array of the token X fees each position is owed
+  - an array of the token Y fees each position is owed
 
 ### mint
 
