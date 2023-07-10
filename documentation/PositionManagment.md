@@ -32,7 +32,7 @@
 - _Returns_:
   - the pool the position belongs token
   - liquidity of the position
-  - the tokens the user can withdraw+fees earned (both for token X and token Y)
+  - the tokens the user can withdraw
   - lower tick
   - upper tick
 
@@ -53,7 +53,7 @@
 - _Returns_:
   - an array of the pool each position belongs to
   - an array of the liquidity of each position
-  - an array of the tokens the user can withdraw+fees earned (both for token X and token Y)
+  - an array of the tokens the user can withdraw
   - an array of the lower ticks
   - an array of the upper ticks
 
@@ -77,8 +77,8 @@
   - pool fee
   - lower tick #because we need this and can't do logs
   - upper tick
-  - Amount of token X => Replace this
-  - Amount of token Y => Replace this
+  - Amount of token X
+  - Amount of token Y
   - Min amount of token X (we will just put 0 here)
   - Min amount of token Y (we will just put 0 here)
 - _Returns_: the tokenId of the liquidity position

@@ -29,7 +29,7 @@
 - _Returns_:
   - an array of the pool each position belongs to
   - an array of the liquidity of each position
-  - an array of the tokens the user can withdraw+fees earned (both for token X and token Y)
+  - an array of the tokens the user can withdraw
   - an array of the lower ticks
   - an array of the upper ticks
 
@@ -51,10 +51,10 @@
   - Token X address
   - Token Y address
   - pool fee
-  - lower tick #because we need this and can't do logs
+  - lower tick
   - upper tick
-  - Amount of token X => Replace this
-  - Amount of token Y => Replace this
+  - Amount of token X
+  - Amount of token Y
   - Min amount of token X (we will just put 0 here)
   - Min amount of token Y (we will just put 0 here)
 - _Returns_: the tokenId of the liquidity position
@@ -89,7 +89,7 @@
   Does not mint any NFT.
 - _Receives_: receives an array with:
   - tokenId
-  - Amount of token X we want to add to the position =>mint
+  - Amount of token X we want to add to the position
   - Amount of token Y we want to add to the position
   - Min amount of token X we want to add to the position(we will just put 0 here)
   - Min amount of token Y we want to add to the position (we will just put 0 here)
@@ -220,7 +220,7 @@
 - To add liquidity:
   1. The user specifies either the amount of token X or token Y he wants to add;
   2. Depending if the user choose X or Y, call _quoteLiqInputToken0_ or _quoteLiqInputToken1_ (Quoter.sol), respectively, to get the other token amount;
-  3. Call _addLiquidity_ (NFT.sol), and the user specifies percentage of slippage he his comfortable with. When sending the _params_ to _singleSwap_, multiply the S0 current square root price by the root of 1-slippage
+  3. Call _addLiquidity_ (NFT.sol), and the user specifies percentage of slippage he his comfortable with;
 - To remove only the earned fees:
   1. Call _removeLiquidity_ (NFT.sol) but use 0 as liquidity. This will update the user owned position and hence the fee amount. After that call _collect_ (NFT.sol)
 
