@@ -37,93 +37,33 @@ contract Quoter {
         factory = factory_;
     }
 
-    function quoteLiqInputToken0(
-        LiqInputTokenParams memory params
-    ) external view returns (uint256 amount1) {
-        IUniswapV3Pool pool = HelpFunctions._getPool(
-            factory,
-            params.tokenIn,
-            params.tokenOut,
-            params.fee
-        );
-
-        (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
-
-        if (tick < params.upperTick && tick > params.lowerTick) {
-            amount1 = Math.mulDivRoundingUp(
-                uint256(sqrtPriceX96),
-                uint256(params.amountInDesired),
-                uint256(2 ** 96)
-            );
-
-            uint128 liquidity = _getLiquidity(
-                params.lowerTick,
-                params.upperTick,
-                sqrtPriceX96,
-                params.amountInDesired,
-                amount1 ** 2
-            );
-
-            amount1 = Math.calcAmount1Delta(
-                TickMath.getSqrtRatioAtTick(params.lowerTick),
-                sqrtPriceX96,
-                liquidity,
-                false
-            );
+    /*
+    External
+     */
+    function uniswapV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes memory data
+    ) external view {
+        address pool = abi.decode(data, (address));
+        uint256 amountOut = amount0Delta > 0
+            ? uint256(-amount1Delta)
+            : uint256(-amount0Delta);
+        (uint160 sqrtPriceX96After, int24 tickAfter, , , ) = IUniswapV3Pool(
+            pool
+        ).slot0();
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, amountOut)
+            mstore(add(ptr, 0x20), sqrtPriceX96After)
+            mstore(add(ptr, 0x40), tickAfter)
+            revert(ptr, 96)
         }
     }
 
-    function quoteLiqInputToken1(
-        LiqInputTokenParams memory params
-    ) public view returns (uint256 amount0) {
-        IUniswapV3Pool pool = HelpFunctions._getPool(
-            factory,
-            params.tokenIn,
-            params.tokenOut,
-            params.fee
-        );
-
-        (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
-
-        if (tick < params.upperTick && tick > params.lowerTick) {
-            amount0 = Math.divRoundingUp(
-                params.amountInDesired,
-                Math.divRoundingUp(uint256(sqrtPriceX96), uint256(2 ** 96))
-            );
-
-            uint128 liquidity = _getLiquidity(
-                params.lowerTick,
-                params.upperTick,
-                sqrtPriceX96,
-                amount0 ** 2,
-                params.amountInDesired
-            );
-
-            amount0 = Math.calcAmount0Delta(
-                sqrtPriceX96,
-                TickMath.getSqrtRatioAtTick(params.upperTick),
-                liquidity,
-                false
-            );
-        }
-    }
-
-    function _getLiquidity(
-        int24 lowerTick,
-        int24 upperTick,
-        uint160 sqrtPriceX96,
-        uint256 amountInDesired,
-        uint256 amountOutDesired
-    ) internal pure returns (uint128 liquidity) {
-        liquidity = LiquidityMath.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtRatioAtTick(lowerTick),
-            TickMath.getSqrtRatioAtTick(upperTick),
-            amountInDesired,
-            amountOutDesired
-        );
-    }
-
+    /*
+    Public
+     */
     function quoteMulti(
         bytes memory path,
         uint256 amountIn
@@ -205,24 +145,96 @@ contract Quoter {
         }
     }
 
-    function uniswapV3SwapCallback(
-        int256 amount0Delta,
-        int256 amount1Delta,
-        bytes memory data
-    ) external view {
-        address pool = abi.decode(data, (address));
-        uint256 amountOut = amount0Delta > 0
-            ? uint256(-amount1Delta)
-            : uint256(-amount0Delta);
-        (uint160 sqrtPriceX96After, int24 tickAfter, , , ) = IUniswapV3Pool(
-            pool
-        ).slot0();
-        assembly {
-            let ptr := mload(0x40)
-            mstore(ptr, amountOut)
-            mstore(add(ptr, 0x20), sqrtPriceX96After)
-            mstore(add(ptr, 0x40), tickAfter)
-            revert(ptr, 96)
+    /*
+    Public - View
+     */
+    function quoteLiqInputToken0(
+        LiqInputTokenParams memory params
+    ) public view returns (uint256 amount1) {
+        IUniswapV3Pool pool = HelpFunctions._getPool(
+            factory,
+            params.tokenIn,
+            params.tokenOut,
+            params.fee
+        );
+
+        (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
+
+        if (tick < params.upperTick && tick > params.lowerTick) {
+            amount1 = Math.mulDivRoundingUp(
+                uint256(sqrtPriceX96),
+                uint256(params.amountInDesired),
+                uint256(2 ** 96)
+            );
+
+            uint128 liquidity = _getLiquidity(
+                params.lowerTick,
+                params.upperTick,
+                sqrtPriceX96,
+                params.amountInDesired,
+                amount1 ** 2
+            );
+
+            amount1 = Math.calcAmount1Delta(
+                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                sqrtPriceX96,
+                liquidity,
+                false
+            );
         }
+    }
+
+    function quoteLiqInputToken1(
+        LiqInputTokenParams memory params
+    ) public view returns (uint256 amount0) {
+        IUniswapV3Pool pool = HelpFunctions._getPool(
+            factory,
+            params.tokenIn,
+            params.tokenOut,
+            params.fee
+        );
+
+        (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
+
+        if (tick < params.upperTick && tick > params.lowerTick) {
+            amount0 = Math.divRoundingUp(
+                params.amountInDesired,
+                Math.divRoundingUp(uint256(sqrtPriceX96), uint256(2 ** 96))
+            );
+
+            uint128 liquidity = _getLiquidity(
+                params.lowerTick,
+                params.upperTick,
+                sqrtPriceX96,
+                amount0 ** 2,
+                params.amountInDesired
+            );
+
+            amount0 = Math.calcAmount0Delta(
+                sqrtPriceX96,
+                TickMath.getSqrtRatioAtTick(params.upperTick),
+                liquidity,
+                false
+            );
+        }
+    }
+
+    /*
+    Internal - Pure
+     */
+    function _getLiquidity(
+        int24 lowerTick,
+        int24 upperTick,
+        uint160 sqrtPriceX96,
+        uint256 amountInDesired,
+        uint256 amountOutDesired
+    ) internal pure returns (uint128 liquidity) {
+        liquidity = LiquidityMath.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtRatioAtTick(lowerTick),
+            TickMath.getSqrtRatioAtTick(upperTick),
+            amountInDesired,
+            amountOutDesired
+        );
     }
 }
