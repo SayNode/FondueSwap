@@ -10,31 +10,6 @@ import math
 
 '''
 @ Testing Fixtures
-Establish the wallets to be used
-'''
-@pytest.fixture 
-def Alice():
-    _wallet = Wallet.fromPrivateKey(bytes.fromhex("67bb4fd2be7a00a95fb3571c991dc6982d0e55d7f63910f6a72e2b14d6f9cb33"))
-    return _wallet
-
-@pytest.fixture 
-def Bob(): 
-    MNEMONIC = config('MNEMONIC_1')
-    _wallet2 = Wallet.fromMnemonic(MNEMONIC.split(', '))
-    return _wallet2
-
-@pytest.fixture 
-def Carol():
-    return Wallet.newWallet()
-
-@pytest.fixture 
-def deployer(): #will act as a contract who will call transferFrom to transfer from Alice to Bob
-    MNEMONIC = config('MNEMONIC_2')
-    _wallet3 = Wallet.fromMnemonic(MNEMONIC.split(', '))
-    return _wallet3
-
-'''
-@ Testing Fixtures
 Establish connection to Vechain testnet node
 '''
 @pytest.fixture
@@ -43,6 +18,63 @@ def connector():
     connector = Connect("https://testnet.veblocks.net")
     return connector
 
+'''
+@ Testing Fixtures
+Establish the wallets to be used
+'''
+@pytest.fixture
+def walletFunding():
+    _wallet = Wallet.fromPrivateKey(bytes.fromhex("67bb4fd2be7a00a95fb3571c991dc6982d0e55d7f63910f6a72e2b14d6f9cb33"))
+    return _wallet
+
+@pytest.fixture 
+def deployer(): 
+    wallet =  Wallet.newWallet()
+    tx = connector.transfer_vtho(
+        walletFunding, 
+        to=wallet.address,
+        vtho_in_wei=3 * (10 ** 16)
+    )
+    connector.wait_for_tx_receipt(tx_id=tx['id'])
+    return wallet
+
+@pytest.fixture 
+def Alice(connector, walletFunding):
+    wallet =  Wallet.newWallet()
+    tx = connector.transfer_vtho(
+        walletFunding, 
+        to=wallet.address,
+        vtho_in_wei=3 * (10 ** 16)
+    )
+    connector.wait_for_tx_receipt(tx_id=tx['id'])
+    return wallet
+
+@pytest.fixture 
+def Bob(connector, walletFunding): 
+    wallet =  Wallet.newWallet()
+    tx = connector.transfer_vtho(
+        walletFunding, 
+        to=wallet.address,
+        vtho_in_wei=3 * (10 ** 16)
+    )
+    connector.wait_for_tx_receipt(tx_id=tx['id'])
+    return wallet
+
+@pytest.fixture 
+def Carol(connector, walletFunding):
+    wallet =  Wallet.newWallet()
+    tx = connector.transfer_vtho(
+        walletFunding, 
+        to=wallet.address,
+        vtho_in_wei=3 * (10 ** 16)
+    )
+    connector.wait_for_tx_receipt(tx_id=tx['id'])
+    return wallet
+
+'''
+@ Testing Fixtures
+Contract deployments
+'''
 @pytest.fixture
 def deployLibrary(deployer, connector):
     libDeployer = deployer
@@ -141,6 +173,10 @@ def NFTContract(deployer, connector,
     print(f"NFT contract deployed at {nft}")
     return nft
 
+'''
+@ Testing Fixtures
+Create Pools
+'''
 @pytest.fixture
 def ABPool(deployer, connector, 
            Atoken, Btoken, 
@@ -159,7 +195,8 @@ def ABPool(deployer, connector,
                       "createPool",
                       [Atoken, Btoken, feeAB])
 
-                                            
+    connector.wait_for_tx_receipt(tx_id=poolCreation['id'], time_out=20)
+    #                                         
     poolAB_address = poolCreation.events['PoolCreated']['pool']
 
     print("Pool Created at ", poolAB_address)
@@ -195,6 +232,7 @@ def XYPool(deployer, connector,
                       "createPool",
                       [Xtoken, Ytoken, feeXY])
 
+    connector.wait_for_tx_receipt(tx_id=poolCreation['id'], time_out=20)
                                             
     poolXY_address = poolCreation.events['PoolCreated']['pool']
 
@@ -213,26 +251,32 @@ def XYPool(deployer, connector,
 
     return xyPool
 
+'''
+Callable Functions
+'''
 def set_pos(connector, NFTContract, minter, Onetoken, Twotoken, fee, lowerTick, upperTick, amountA, amountB):
     #First alice position
     # approve
-    execute_functions(connector, 
+    approve = execute_functions(connector, 
                       minter,
                       Onetoken, Onetoken.address,
                       "approve",
                       [NFTContract, 100000*10**18])
-    execute_functions(connector, 
+    connector.wait_for_tx_receipt(tx_id=approve['id'], time_out=20)
+    approve = execute_functions(connector, 
                       minter,
                       Twotoken, Twotoken.address,
                       "approve",
                       [NFTContract, 100000*10**18])
+    connector.wait_for_tx_receipt(tx_id=approve['id'], time_out=20)
+
     # set position
     pos = execute_functions(connector, 
                       minter,
                       NFTContract, NFTContract.address,
                       "mint",
                       [[minter, Onetoken, Twotoken, fee, lowerTick, upperTick, amountA, amountB, 0, 0]])
-    
+    connector.wait_for_tx_receipt(tx_id=pos['id'], time_out=20)
     return pos
     
 @pytest.fixture
@@ -242,27 +286,30 @@ def init_setup_ABPool(connector, Alice, deployer, Atoken, Btoken, NFTContract, d
     Alice = Alice
 
     #Fund Alice
-    execute_functions(connector, 
+    mint = execute_functions(connector, 
                         deployer,
                         Atoken, Atoken.address,
                         "mint",
                         [Alice, 100_000*10**18])
-    execute_functions(connector, 
+    connector.wait_for_tx_receipt(tx_id=mint['id'], time_out=20)
+    mint = execute_functions(connector, 
                         deployer,
                         Btoken, Btoken.address,
                         "mint",
                         [Alice, 100_000*10**18])
+    connector.wait_for_tx_receipt(tx_id=mint['id'], time_out=20)
 
     #Variables
     fraq=2**96
     initP_AB=5000
 
     #Initialize pool AB
-    tx = execute_functions(connector, 
+    init_pool = execute_functions(connector, 
                         deployer,
                         ABPool, ABPool.address,
                         "initialize",
                         [initP_AB])
+    connector.wait_for_tx_receipt(tx_id=init_pool['id'], time_out=20)
     slot_zero = call_functions(connector, 
                         deployer,
                         ABPool, ABPool.address,
@@ -377,11 +424,13 @@ def init_setup_XYPool(connector, deployer, Carol, Xtoken, Ytoken, NFTContract, d
                         Xtoken, Xtoken.address,
                         "mint",
                         [Carol, 100_000*10**18])
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
     execute_functions(connector, 
                         deployer,
                         Ytoken, Ytoken.address,
                         "mint",
                         [Carol, 100_000*10**18])
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
 
     #Variables
     fraq=2**96
@@ -393,6 +442,7 @@ def init_setup_XYPool(connector, deployer, Carol, Xtoken, Ytoken, NFTContract, d
                         XYPool, XYPool.address,
                         "initialize",
                         [initP_XY])
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
     slot_zero = call_functions(connector, 
                         deployer,
                         XYPool, XYPool.address,
@@ -516,7 +566,7 @@ def remLiq(connector, ABPool, NFTContract, minter, tokenID, liquidity):
                         NFTContract, NFTContract.address,
                         "removeLiquidity",
                         [[tokenID, liquidity]])
-    # chain.sleep(30)
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
     pos = call_functions(connector, 
                         deployer,
                         NFTContract, NFTContract.address,
@@ -561,11 +611,13 @@ def addLiq(connector, deployer, Atoken, Btoken, NFTContract, amountA, amountB, m
                         Atoken, Atoken.address,
                         "approve",
                         [NFTContract, amountA])
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
     execute_functions(connector, 
                         minter,
                         Btoken, Btoken.address,
                         "approve",
                         [NFTContract, amountB])
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
 
     execute_functions(connector, 
                         minter,
@@ -573,6 +625,7 @@ def addLiq(connector, deployer, Atoken, Btoken, NFTContract, amountA, amountB, m
                         "addLiquidity",
                         [tokenID, amountA, amountB, 0, 0])
 
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
 
     pos = call_functions(connector, 
                         deployer,
@@ -600,7 +653,9 @@ def collectLiq(connector, ABPool, NFTContract, minter, tokenID):
                         NFTContract, NFTContract.address,
                         "collect",
                         [tokenID])
-    #chain.sleep(30)
+    
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
+
     pos = call_functions(connector, 
                         deployer,
                         NFTContract, NFTContract.address,
@@ -634,11 +689,16 @@ def test_userToAllPos(connector,
                         Xtoken, Xtoken.address,
                         "mint",
                         [Alice, 100_000*10**18])
+    
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
+
     execute_functions(connector, 
                         deployer,
                         Ytoken, Ytoken.address,
                         "mint",
                         [Alice, 100_000*10**18])
+    
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
 
     #Alice: Set position in different pool
     set_pos(NFTContract, Alice, Xtoken, Ytoken, 500, 44220, 48130, 0.1*10**18, 10*10**18)
@@ -765,11 +825,16 @@ def test_userToAllPos(connector,
                         Atoken, Atoken.address,
                         "mint",
                         [Bob, 100_000*10**18])
+    
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
+
     execute_functions(connector, 
                         Bob,
                         Atoken, Atoken.address,
                         "approve",
                         [swapManagerContract, 10*10**18])
+    
+    connector.wait_for_tx_receipt(tx_id='', time_out=20)
 
     slippage = 0.03
     params = [Atoken, Btoken, 500, 0.1*10**18, int(int(ABPool.slot0({"from": account})[0])*math.sqrt(1-slippage))]
@@ -778,6 +843,8 @@ def test_userToAllPos(connector,
                         swapManagerContract, swapManagerContract.address,
                         "swapSingle",
                         [params])
+    
+    connector.wait_for_tx_receipt(tx_id=swapResults['id'], time_out=20)
 
     pos = call_functions(connector, 
                         deployer,
