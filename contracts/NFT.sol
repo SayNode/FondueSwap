@@ -1,19 +1,33 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.14;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./ERC721.sol";
 import "./HelpFunctions.sol";
-
-import "./interfaces/IERC20.sol";
-import "./interfaces/IUniswapV3Pool.sol";
-
+import "../interfaces/IERC20.sol";
+import "../interfaces/IUniswapV3Pool.sol";
 import "./lib/LiquidityMath.sol";
 import "./lib/NFTRenderer.sol";
 import "./lib/TickMath.sol";
-import "./lib/Position.sol";
-import "./lib/Tick.sol";
 
 contract NFT is ERC721 {
+    error WrongToken();
+    error PositionNotCleared();
+    error SlippageCheckFailed(uint256 amount0, uint256 amount1);
+    error TooLittleReceived(uint256 amountOut);
+
+    struct MintParams {
+        address recipient;
+        address tokenA;
+        address tokenB;
+        uint24 fee;
+        int24 lowerTick;
+        int24 upperTick;
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        uint256 amount0Min;
+        uint256 amount1Min;
+    }
+
     /*
     Custom Errors
     */
@@ -64,7 +78,7 @@ contract NFT is ERC721 {
     /*
     Mappings
     */
-    mapping(uint256 => HelpFunctions.TokenPosition) public positions;
+    mapping(uint256 => TokenPosition) public positions;
     mapping(address => uint256[]) public userOwnedPositions;
     mapping(uint256 => bool) public burnedIds;
 
@@ -75,8 +89,8 @@ contract NFT is ERC721 {
         address owner = ownerOf(tokenId);
         if (
             msg.sender != owner &&
-            !(isApprovedForAll(owner, msg.sender)) &&
-            getApproved(tokenId) != msg.sender
+            !isApprovedForAll[owner][msg.sender] &&
+            getApproved[tokenId] != msg.sender
         ) revert NotAuthorized();
 
         _;
@@ -87,6 +101,12 @@ contract NFT is ERC721 {
     */
     constructor(address factoryAddress) ERC721("NFT Positions", "PosNFT") {
         factory = factoryAddress;
+    }
+
+    struct TokenPosition {
+        address pool;
+        int24 lowerTick;
+        int24 upperTick;
     }
 
     /*
@@ -104,9 +124,7 @@ contract NFT is ERC721 {
     ///             amount1Desired:amount of second token we want to add to the position as liquidity
     ///             amount0Min: min amount of first token we want to add to the position as liquidity
     ///             amount1Min: min amount of second token we want to add to the position as liquidity
-    function mint(
-        HelpFunctions.MintParams calldata params
-    ) public returns (uint256 tokenId) {
+    function mint(MintParams calldata params) public returns (uint256 tokenId) {
         IUniswapV3Pool pool = HelpFunctions._getPool(
             factory,
             params.tokenA,
@@ -131,12 +149,11 @@ contract NFT is ERC721 {
         _mint(params.recipient, tokenId);
         totalSupply++;
 
-        HelpFunctions.TokenPosition memory tokenPosition = HelpFunctions
-            .TokenPosition({
-                pool: address(pool),
-                lowerTick: params.lowerTick,
-                upperTick: params.upperTick
-            });
+        TokenPosition memory tokenPosition = TokenPosition({
+            pool: address(pool),
+            lowerTick: params.lowerTick,
+            upperTick: params.upperTick
+        });
 
         positions[tokenId] = tokenPosition;
         userOwnedPositions[msg.sender].push(tokenId);
@@ -149,7 +166,7 @@ contract NFT is ERC721 {
     /// @dev This method will fail if called before the user removes all liquidity from the corresponding positions
     ///      and collects the corresponding tokens
     function burn(uint256 tokenId) public isApprovedOrOwner(tokenId) {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
@@ -176,7 +193,7 @@ contract NFT is ERC721 {
         isApprovedOrOwner(tokenId)
         returns (uint128 amount0, uint128 amount1)
     {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
@@ -206,9 +223,7 @@ contract NFT is ERC721 {
     function addLiquidity(
         AddLiquidityParams calldata params
     ) public returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[
-            params.tokenId
-        ];
+        TokenPosition memory tokenPosition = positions[params.tokenId];
 
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
@@ -241,9 +256,7 @@ contract NFT is ERC721 {
         isApprovedOrOwner(params.tokenId)
         returns (uint256 amount0, uint256 amount1)
     {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[
-            params.tokenId
-        ];
+        TokenPosition memory tokenPosition = positions[params.tokenId];
 
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
@@ -329,7 +342,7 @@ contract NFT is ERC721 {
     function tokenIDtoPosition(
         uint256 tokenId
     ) public view returns (address, uint128, uint128, uint128, int24, int24) {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
@@ -355,7 +368,7 @@ contract NFT is ERC721 {
         view
         returns (uint256 updatedTokensOwed0, uint256 updatedTokensOwed1)
     {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
@@ -394,9 +407,7 @@ contract NFT is ERC721 {
         int24[] memory upperTicks = new int24[](_tokensOfOwner.length);
 
         for (uint i = 0; i < _tokensOfOwner.length; ++i) {
-            HelpFunctions.TokenPosition memory tokenPosition = positions[
-                _tokensOfOwner[i]
-            ];
+            TokenPosition memory tokenPosition = positions[_tokensOfOwner[i]];
             if (tokenPosition.pool == address(0x00))
                 revert HelpFunctions.WrongToken();
 
@@ -455,17 +466,24 @@ contract NFT is ERC721 {
     function tokenURI(
         uint256 tokenId
     ) public view override returns (string memory) {
-        HelpFunctions.TokenPosition memory tokenPosition = positions[tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
 
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
         IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
 
+        IERC20 token0 = IERC20(pool.token0());
+        IERC20 token1 = IERC20(pool.token1());
+
+        string memory symbol0 = token0.symbol();
+        string memory symbol1 = token1.symbol();
+
         return
             NFTRenderer.render(
                 NFTRenderer.RenderParams({
-                    pool: tokenPosition.pool,
+                    symbol0: symbol0,
+                    symbol1: symbol1,
                     owner: address(this),
                     lowerTick: tokenPosition.lowerTick,
                     upperTick: tokenPosition.upperTick,
@@ -483,7 +501,7 @@ contract NFT is ERC721 {
     ///             lowerTick: the token Id
     ///             upperTick: the token Id
     function _poolPositionKey(
-        HelpFunctions.TokenPosition memory position
+        TokenPosition memory position
     ) internal view returns (bytes32 key) {
         key = keccak256(
             abi.encodePacked(

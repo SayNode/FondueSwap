@@ -3,6 +3,7 @@ dependencies:
   - OpenZeppelin/openzeppelin-contracts@4.5.0
 compiler:
   solc:
+    version: "0.8.14"
     optimizer:
       enabled: true
       runs: 10

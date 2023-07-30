@@ -4,9 +4,9 @@ pragma solidity ^0.8.14;
 import "./PoolFactory.sol";
 import "./HelpFunctions.sol";
 
-import "./interfaces/IERC20.sol";
-import "./interfaces/IUniswapV3Pool.sol";
-import "./interfaces/IUniswapV3Manager.sol";
+import "../interfaces/IERC20.sol";
+import "../interfaces/IUniswapV3Pool.sol";
+import "../interfaces/IUniswapV3Manager.sol";
 
 import "./lib/Path.sol";
 import "./lib/PoolAddress.sol";

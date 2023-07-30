@@ -1,2 +1,0 @@
-- ver o como ter os valores do recibo da tx
-- ver se o UserToAllPositions funciona e depois passar as funções para as outras

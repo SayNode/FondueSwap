@@ -3,7 +3,7 @@ pragma solidity ^0.8.14;
 
 import "./ABDKMath64x64.sol";
 import "../lib/FixedPoint96.sol";
-import "../interfaces/IUniswapV3Manager.sol";
+import "../../interfaces/IUniswapV3Manager.sol";
 import "../lib/TickMath.sol";
 
 library Utils {
@@ -39,20 +39,18 @@ library Utils {
         });
     }
 
-    function sqrtPToNearestTick(uint160 sqrtP_, uint24 tickSpacing)
-        internal
-        pure
-        returns (int24 tick_)
-    {
+    function sqrtPToNearestTick(
+        uint160 sqrtP_,
+        uint24 tickSpacing
+    ) internal pure returns (int24 tick_) {
         tick_ = TickMath.getTickAtSqrtRatio(sqrtP_);
         tick_ = nearestUsableTick(tick_, tickSpacing);
     }
 
-    function nearestUsableTick(int24 tick_, uint24 tickSpacing)
-        internal
-        pure
-        returns (int24 result)
-    {
+    function nearestUsableTick(
+        int24 tick_,
+        uint24 tickSpacing
+    ) internal pure returns (int24 result) {
         result =
             int24(divRound(int128(tick_), int128(int24(tickSpacing)))) *
             int24(tickSpacing);
@@ -64,16 +62,15 @@ library Utils {
         }
     }
 
-    function divRound(int128 x, int128 y)
-        internal
-        pure
-        returns (int128 result)
-    {
+    function divRound(
+        int128 x,
+        int128 y
+    ) internal pure returns (int128 result) {
         int128 quot = ABDKMath64x64.div(x, y);
         result = quot >> 64;
 
         // Check if remainder is greater than 0.5
-        if (quot % 2**64 >= 0x8000000000000000) {
+        if (quot % 2 ** 64 >= 0x8000000000000000) {
             result += 1;
         }
     }
