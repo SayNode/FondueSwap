@@ -1,27 +1,4 @@
-# Setup:
-
-1. Deploy Tokens
-
-   - "TokenA","TA",18
-   - "TokenB","TB",18
-
-2. Fund the wallet
-
-   - 0x4E797d50aE049F047C425dA32b64305b0ebcf78a
-   - 100000000000000000000000
-
-3. Deploy PoolFactory
-4. Create a pool with the 2 tokens and a fee
-
-   - TokenA_address, TokenB_address, 500
-
-5. Initialize the pool the P=5000
-6. Deploy NFT
-   - Factory_address
-7. Deploy SwapManager
-   - Factory_address
-
-# Mint pos
+# Params Used
 
 1. Approve NFT to spend tokens from user
    - NFT_address
@@ -42,15 +19,13 @@
    - [0, 1000000000000000000, 5000000000000000000000, 0, 0]
 4. Remove liquidity:
    - [2, 86082464703667991357]
-
-# Check view functions
-
-# Remove liquidity, collect and burn 2 positions
-
-# Check view functions again
-
-# Swap
-
-# Check view functions (getFees)
-
-# Remove only fees
+5. Swap:
+   - [0x854aa996D5575bf7606c616b5a087CC2F0b1FEd4, 0x92FfFbb6C65541E9679352B7028698725C26304D, 500, 100000000000000000, 5302277097478613991869082763264]
+6. Rmoeve zero liquidity in order to only get the fees:
+   - [3, 0]
+7. Burn position 2:
+   - RemoveLiq -> [2, 90000000000000000000]
+   - Collect: 2
+8. Burn position 4:
+   - RemoveLiq -> [4, 328017913020041040462]
+   - Collect: 4
