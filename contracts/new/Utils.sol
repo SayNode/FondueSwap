@@ -3,7 +3,7 @@ pragma solidity ^0.8.14;
 
 import "./ABDKMath64x64.sol";
 import "../lib/FixedPoint96.sol";
-import "../../interfaces/IUniswapV3Manager.sol";
+import "../../interface_contracts/IUniswapV3Manager.sol";
 import "../lib/TickMath.sol";
 
 library Utils {

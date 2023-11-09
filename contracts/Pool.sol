@@ -3,12 +3,12 @@ pragma solidity ^0.8.14;
 
 import "./new/Utils.sol";
 
-import "../interfaces/IERC20.sol";
-import "../interfaces/IUniswapV3FlashCallback.sol";
-import "../interfaces/IUniswapV3MintCallback.sol";
-import "../interfaces/IUniswapV3Pool.sol";
-import "../interfaces/IUniswapV3PoolDeployer.sol";
-import "../interfaces/IUniswapV3SwapCallback.sol";
+import "../interface_contracts/IERC20.sol";
+import "../interface_contracts/IUniswapV3FlashCallback.sol";
+import "../interface_contracts/IUniswapV3MintCallback.sol";
+import "../interface_contracts/IUniswapV3Pool.sol";
+import "../interface_contracts/IUniswapV3PoolDeployer.sol";
+import "../interface_contracts/IUniswapV3SwapCallback.sol";
 
 import "../lib/prb-math/PRBMath.sol";
 import "./lib/FixedPoint128.sol";

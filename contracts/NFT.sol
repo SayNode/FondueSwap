@@ -3,8 +3,8 @@ pragma solidity ^0.8.14;
 
 import "./ERC721.sol";
 import "./HelpFunctions.sol";
-import "../interfaces/IERC20.sol";
-import "../interfaces/IUniswapV3Pool.sol";
+import "../interface_contracts/IERC20.sol";
+import "../interface_contracts/IUniswapV3Pool.sol";
 import "./lib/LiquidityMath.sol";
 import "./lib/NFTRenderer.sol";
 import "./lib/TickMath.sol";

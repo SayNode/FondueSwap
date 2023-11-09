@@ -3,7 +3,7 @@ pragma solidity ^0.8.14;
 
 import "./Pool.sol";
 
-import "../interfaces/IUniswapV3PoolDeployer.sol";
+import "../interface_contracts/IUniswapV3PoolDeployer.sol";
 
 contract PoolFactory is IUniswapV3PoolDeployer {
     error PoolAlreadyExists();

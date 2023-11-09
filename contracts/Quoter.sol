@@ -3,7 +3,7 @@ pragma solidity ^0.8.14;
 
 import "./HelpFunctions.sol";
 
-import "../interfaces/IUniswapV3Pool.sol";
+import "../interface_contracts/IUniswapV3Pool.sol";
 
 import "./lib/Math.sol";
 import "./lib/Path.sol";
