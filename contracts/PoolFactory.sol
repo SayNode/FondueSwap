@@ -18,7 +18,14 @@ contract PoolFactory is IUniswapV3PoolDeployer {
         address pool
     );
 
+    struct CreatedPool {
+        address token0;
+        address token1;
+        uint24 fee;
+    }
+
     PoolParameters public parameters;
+    CreatedPool[] public createdPools;
 
     mapping(uint24 => uint24) public fees;
     mapping(address => mapping(address => mapping(uint24 => address)))
@@ -27,6 +34,26 @@ contract PoolFactory is IUniswapV3PoolDeployer {
     constructor() {
         fees[500] = 10;
         fees[3000] = 60;
+        fees[10000] = 200;
+    }
+
+    function getCreatedPools()
+        public
+        view
+        returns (address[] memory, address[] memory, uint24[] memory)
+    {
+        uint256 arraySize = createdPools.length;
+
+        address[] memory addrsPool0 = new address[](arraySize);
+        address[] memory addrsPool1 = new address[](arraySize);
+        uint24[] memory poolFees = new uint24[](arraySize);
+        for (uint i = 0; i < arraySize; i = i + 1) {
+            CreatedPool storage createdpool = createdPools[i];
+            addrsPool0[i] = createdpool.token0;
+            addrsPool1[i] = createdpool.token1;
+            poolFees[i] = createdpool.fee;
+        }
+        return (addrsPool0, addrsPool1, poolFees);
     }
 
     function createPool(
@@ -62,6 +89,7 @@ contract PoolFactory is IUniswapV3PoolDeployer {
         pools[tokenX][tokenY][fee] = pool;
         pools[tokenY][tokenX][fee] = pool;
 
+        createdPools.push(CreatedPool(tokenX, tokenY, fee));
         emit PoolCreated(tokenX, tokenY, fee, pool);
     }
 }
