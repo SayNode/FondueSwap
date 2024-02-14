@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.14;
 
+import "./PoolFactory.sol";
 import "./ERC721.sol";
 import "./HelpFunctions.sol";
 import "../interface_contracts/IERC20.sol";
@@ -14,19 +15,6 @@ contract NFT is ERC721 {
     error PositionNotCleared();
     error SlippageCheckFailed(uint256 amount0, uint256 amount1);
     error TooLittleReceived(uint256 amountOut);
-
-    struct MintParams {
-        address recipient;
-        address tokenA;
-        address tokenB;
-        uint24 fee;
-        int24 lowerTick;
-        int24 upperTick;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
 
     /*
     Custom Errors
@@ -54,17 +42,14 @@ contract NFT is ERC721 {
     /*
     Structs
     */
-    struct AddLiquidityParams {
-        uint256 tokenId;
+    struct AddLiquidityInternalParams {
+        IUniswapV3Pool pool;
+        int24 lowerTick;
+        int24 upperTick;
         uint256 amount0Desired;
         uint256 amount1Desired;
         uint256 amount0Min;
         uint256 amount1Min;
-    }
-
-    struct RemoveLiquidityParams {
-        uint256 tokenId;
-        uint128 liquidity;
     }
 
     /*
@@ -74,6 +59,7 @@ contract NFT is ERC721 {
     uint256 private nextTokenId;
 
     address public immutable factory;
+    PoolFactory poolfactory;
 
     /*
     Mappings
@@ -101,6 +87,7 @@ contract NFT is ERC721 {
     */
     constructor(address factoryAddress) ERC721("NFT Positions", "PosNFT") {
         factory = factoryAddress;
+        poolfactory = PoolFactory(factory);
     }
 
     struct TokenPosition {
@@ -113,7 +100,7 @@ contract NFT is ERC721 {
     Public 
     */
     /// @notice Used for setting new positions. Mints an NFT connected to the created position
-    /// @param params: an array with the following parameters:
+    /// An array with the following parameters:
     ///             recipient: the user who is minting the new position
     ///             tokenA: first token in the pool where the position is being minted
     ///             tokenB: second token in the pool where the position is being minted
@@ -124,35 +111,43 @@ contract NFT is ERC721 {
     ///             amount1Desired:amount of second token we want to add to the position as liquidity
     ///             amount0Min: min amount of first token we want to add to the position as liquidity
     ///             amount1Min: min amount of second token we want to add to the position as liquidity
-    function mint(MintParams calldata params) public returns (uint256 tokenId) {
-        IUniswapV3Pool pool = HelpFunctions._getPool(
-            factory,
-            params.tokenA,
-            params.tokenB,
-            params.fee
-        );
-
+    function mint(address recipient,
+                address tokenA,
+                address tokenB,
+                uint24 fee,
+        int24 lowerTick,
+        int24 upperTick,
+        uint256 amount0Desired,
+        uint256 amount1Desired,
+        uint256 amount0Min,
+        uint256 amount1Min) public returns (uint256 tokenId) {
+        IUniswapV3Pool pool = IUniswapV3Pool(poolfactory.pools(
+            tokenA,
+            tokenB,
+            fee
+        )); 
+ 
         (uint128 liquidity, uint256 amount0, uint256 amount1) = _addLiquidity(
-            HelpFunctions.AddLiquidityInternalParams({
+            AddLiquidityInternalParams({
                 pool: pool,
-                lowerTick: params.lowerTick,
-                upperTick: params.upperTick,
-                amount0Desired: params.amount0Desired,
-                amount1Desired: params.amount1Desired,
-                amount0Min: params.amount0Min,
-                amount1Min: params.amount1Min
+                lowerTick: lowerTick,
+                upperTick: upperTick,
+                amount0Desired: amount0Desired,
+                amount1Desired: amount1Desired,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min
             })
         );
-
+        
         tokenId = nextTokenId++;
 
-        _mint(params.recipient, tokenId);
+        _mint(recipient, tokenId);
         totalSupply++;
 
         TokenPosition memory tokenPosition = TokenPosition({
             pool: address(pool),
-            lowerTick: params.lowerTick,
-            upperTick: params.upperTick
+            lowerTick: lowerTick,
+            upperTick: upperTick
         });
 
         positions[tokenId] = tokenPosition;
@@ -213,7 +208,7 @@ contract NFT is ERC721 {
     }
 
     /// @notice adds liquidity to an existing position.
-    /// @param params: an array with the following parameters:
+    /// An array with the following parameters:
     ///             tokenId: the token Id of the position we wish to add liquidity too
     ///             amount0Desired: amount of token 0 we want to add
     ///             amount1Desired: amount of token 1 we want to add
@@ -221,42 +216,47 @@ contract NFT is ERC721 {
     ///             amount1Min: min amount of token 1 we want to add
     /// @dev does not mint a new NFT. It only updates the position info
     function addLiquidity(
-        AddLiquidityParams calldata params
+        uint256 tokenId,
+        uint256 amount0Desired,
+        uint256 amount1Desired,
+        uint256 amount0Min,
+        uint256 amount1Min
     ) public returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
-        TokenPosition memory tokenPosition = positions[params.tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
 
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
 
         (liquidity, amount0, amount1) = _addLiquidity(
-            HelpFunctions.AddLiquidityInternalParams({
+            AddLiquidityInternalParams({
                 pool: IUniswapV3Pool(tokenPosition.pool),
                 lowerTick: tokenPosition.lowerTick,
                 upperTick: tokenPosition.upperTick,
-                amount0Desired: params.amount0Desired,
-                amount1Desired: params.amount1Desired,
-                amount0Min: params.amount0Min,
-                amount1Min: params.amount1Min
+                amount0Desired: amount0Desired,
+                amount1Desired: amount1Desired,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min
             })
         );
 
-        emit AddLiquidity(params.tokenId, liquidity, amount0, amount1);
+        emit AddLiquidity(tokenId, liquidity, amount0, amount1);
     }
 
     /// @notice removes liquidity from an existing position.
-    /// @param params: an array with the following parameters:
+    /// An array with the following parameters:
     ///             tokenId: the token Id of the position we wish to remove liquidity from
     ///             liquidity: the liquidity amount we wish to remove
     /// @dev does not burn the NFT and does not return the tokens to the user (use collect for that).
     ///     It only updates the position info
     function removeLiquidity(
-        RemoveLiquidityParams memory params
+        uint256 tokenId,
+        uint128 liquidity
     )
         public
-        isApprovedOrOwner(params.tokenId)
+        isApprovedOrOwner(tokenId)
         returns (uint256 amount0, uint256 amount1)
     {
-        TokenPosition memory tokenPosition = positions[params.tokenId];
+        TokenPosition memory tokenPosition = positions[tokenId];
 
         if (tokenPosition.pool == address(0x00))
             revert HelpFunctions.WrongToken();
@@ -266,17 +266,17 @@ contract NFT is ERC721 {
         (uint128 availableLiquidity, , , , ) = pool.positions(
             _poolPositionKey(tokenPosition)
         );
-        if (params.liquidity > availableLiquidity) revert NotEnoughLiquidity();
+        if (liquidity > availableLiquidity) revert NotEnoughLiquidity();
 
         (amount0, amount1) = pool.burn(
             tokenPosition.lowerTick,
             tokenPosition.upperTick,
-            params.liquidity
+            liquidity
         );
 
         emit RemoveLiquidity(
-            params.tokenId,
-            params.liquidity,
+            tokenId,
+            liquidity,
             amount0,
             amount1
         );
@@ -514,8 +514,9 @@ contract NFT is ERC721 {
 
     /// @notice help function to add liquidity anytime we mint or add liquidity to an existing position
     function _addLiquidity(
-        HelpFunctions.AddLiquidityInternalParams memory params
+        AddLiquidityInternalParams memory params
     ) internal returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
+        
         (uint160 sqrtPriceX96, , , , ) = params.pool.slot0();
 
         liquidity = LiquidityMath.getLiquidityForAmounts(
@@ -525,7 +526,7 @@ contract NFT is ERC721 {
             params.amount0Desired,
             params.amount1Desired
         );
-
+        
         (amount0, amount1) = params.pool.mint(
             address(this),
             params.lowerTick,
