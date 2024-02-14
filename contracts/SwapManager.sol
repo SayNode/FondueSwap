@@ -19,21 +19,21 @@ contract SwapManager is IUniswapV3Manager {
 
     address public immutable factory;
 
-    PoolFactory fact;
+    PoolFactory poolfactory;
 
     /*
     Constructor
     */
     constructor(address factory_) {
         factory = factory_;
-        fact = PoolFactory(factory);
+        poolfactory = PoolFactory(factory);
     }
 
     /*
     Public 
     */
     /// @notice makes a single pool swap
-    /// @param params: an array with the following parameters:
+    ///  An array with the following parameters:
     ///             tokenIn: the token we want to sell to the pool
     ///             tokenOut: the token we want to buy from the pool
     ///             fee: the fee of the pool in which we will swap
@@ -41,17 +41,22 @@ contract SwapManager is IUniswapV3Manager {
     ///             sqrtPriceLimitX96: how much we are willing to allow for price slippage SQRTP*sqrt(slippage)
     /// @dev cannot be used unless the pool exists
     function swapSingle(
-        SwapSingleParams calldata params
+        address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        uint256 amountIn,
+        uint160 sqrtPriceLimitX96
     ) public returns (uint256 amountOut) {
+
         amountOut = _swap(
-            params.amountIn,
+            amountIn,
             msg.sender,
-            params.sqrtPriceLimitX96,
+            sqrtPriceLimitX96,
             SwapCallbackData({
                 path: abi.encodePacked(
-                    params.tokenIn,
-                    params.fee,
-                    params.tokenOut
+                    tokenIn,
+                    fee,
+                    tokenOut
                 ),
                 payer: msg.sender
             })
@@ -173,15 +178,19 @@ contract SwapManager is IUniswapV3Manager {
         uint160 sqrtPriceLimitX96,
         SwapCallbackData memory data
     ) internal returns (uint256 amountOut) {
+       
         (address tokenIn, address tokenOut, uint24 fee) = data
             .path
             .decodeFirstPool();
-
+        
         bool zeroForOne = tokenIn < tokenOut;
-
-        (int256 amount0, int256 amount1) = HelpFunctions
-            ._getPool(factory, tokenIn, tokenOut, fee)
-            .swap(
+        
+        (int256 amount0, int256 amount1) = 
+            IUniswapV3Pool(poolfactory.pools(
+            tokenIn,
+            tokenOut,
+            fee
+        )).swap(
                 recipient,
                 zeroForOne,
                 amountIn,
@@ -194,7 +203,7 @@ contract SwapManager is IUniswapV3Manager {
                     : sqrtPriceLimitX96,
                 abi.encode(data)
             );
-
+        
         amountOut = uint256(-(zeroForOne ? amount1 : amount0));
     }
 }
