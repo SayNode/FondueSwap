@@ -2,6 +2,7 @@
 pragma solidity ^0.8.14;
 
 import "./HelpFunctions.sol";
+import "./PoolFactory.sol";
 
 import "../interface_contracts/IUniswapV3Pool.sol";
 
@@ -14,27 +15,12 @@ import "./lib/LiquidityMath.sol";
 contract Quoter {
     using Path for bytes;
 
-    struct QuoteSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        uint256 amountIn;
-        uint160 sqrtPriceLimitX96;
-    }
-
-    struct LiqInputTokenParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        int24 lowerTick;
-        int24 upperTick;
-        uint256 amountInDesired;
-    }
-
     address public immutable factory;
+    PoolFactory poolfactory;
 
     constructor(address factory_) {
         factory = factory_;
+        poolfactory = PoolFactory(factory);
     }
 
     /*
@@ -87,14 +73,7 @@ contract Quoter {
                 uint256 amountOut_,
                 uint160 sqrtPriceX96After,
                 int24 tickAfter
-            ) = quoteSingle(
-                    QuoteSingleParams({
-                        tokenIn: tokenIn,
-                        tokenOut: tokenOut,
-                        fee: fee,
-                        amountIn: amountIn,
-                        sqrtPriceLimitX96: 0
-                    })
+            ) = quoteSingle(tokenIn, tokenOut, fee,  amountIn, 0
                 );
 
             sqrtPriceX96AfterList[i] = sqrtPriceX96After;
@@ -112,32 +91,35 @@ contract Quoter {
     }
 
     function quoteSingle(
-        QuoteSingleParams memory params
+        address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        uint256 amountIn,
+        uint160 sqrtPriceLimitX96
     )
         public
         returns (uint256 amountOut, uint160 sqrtPriceX96After, int24 tickAfter)
     {
-        IUniswapV3Pool pool = HelpFunctions._getPool(
-            factory,
-            params.tokenIn,
-            params.tokenOut,
-            params.fee
-        );
-
-        bool zeroForOne = params.tokenIn < params.tokenOut;
+        IUniswapV3Pool pool = IUniswapV3Pool(poolfactory.pools(
+            tokenIn,
+            tokenOut,
+            fee
+        )); 
+ 
+        bool zeroForOne = tokenIn < tokenOut;
 
         try
             pool.swap(
                 address(this),
                 zeroForOne,
-                params.amountIn,
-                params.sqrtPriceLimitX96 == 0
+                amountIn,
+                sqrtPriceLimitX96 == 0
                     ? (
                         zeroForOne
                             ? TickMath.MIN_SQRT_RATIO + 1
                             : TickMath.MAX_SQRT_RATIO - 1
                     )
-                    : params.sqrtPriceLimitX96,
+                    : sqrtPriceLimitX96,
                 abi.encode(address(pool))
             )
         {} catch (bytes memory reason) {
@@ -149,34 +131,39 @@ contract Quoter {
     Public - View
      */
     function quoteLiqInputToken0(
-        LiqInputTokenParams memory params
+                address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        int24 lowerTick,
+        int24 upperTick,
+        uint256 amountInDesired
     ) public view returns (uint256 amount1) {
         IUniswapV3Pool pool = HelpFunctions._getPool(
             factory,
-            params.tokenIn,
-            params.tokenOut,
-            params.fee
+            tokenIn,
+            tokenOut,
+            fee
         );
 
         (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
 
-        if (tick < params.upperTick && tick > params.lowerTick) {
+        if (tick < upperTick && tick > lowerTick) {
             amount1 = Math.mulDivRoundingUp(
                 uint256(sqrtPriceX96),
-                uint256(params.amountInDesired),
+                uint256(amountInDesired),
                 uint256(2 ** 96)
             );
 
             uint128 liquidity = _getLiquidity(
-                params.lowerTick,
-                params.upperTick,
+                lowerTick,
+                upperTick,
                 sqrtPriceX96,
-                params.amountInDesired,
+                amountInDesired,
                 amount1 ** 2
             );
 
             amount1 = Math.calcAmount1Delta(
-                TickMath.getSqrtRatioAtTick(params.lowerTick),
+                TickMath.getSqrtRatioAtTick(lowerTick),
                 sqrtPriceX96,
                 liquidity,
                 false
@@ -185,34 +172,39 @@ contract Quoter {
     }
 
     function quoteLiqInputToken1(
-        LiqInputTokenParams memory params
+                address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        int24 lowerTick,
+        int24 upperTick,
+        uint256 amountInDesired
     ) public view returns (uint256 amount0) {
         IUniswapV3Pool pool = HelpFunctions._getPool(
             factory,
-            params.tokenIn,
-            params.tokenOut,
-            params.fee
+            tokenIn,
+            tokenOut,
+            fee
         );
 
         (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
 
-        if (tick < params.upperTick && tick > params.lowerTick) {
+        if (tick < upperTick && tick > lowerTick) {
             amount0 = Math.divRoundingUp(
-                params.amountInDesired,
+                amountInDesired,
                 Math.divRoundingUp(uint256(sqrtPriceX96), uint256(2 ** 96))
             );
 
             uint128 liquidity = _getLiquidity(
-                params.lowerTick,
-                params.upperTick,
+                lowerTick,
+                upperTick,
                 sqrtPriceX96,
                 amount0 ** 2,
-                params.amountInDesired
+                amountInDesired
             );
 
             amount0 = Math.calcAmount0Delta(
                 sqrtPriceX96,
-                TickMath.getSqrtRatioAtTick(params.upperTick),
+                TickMath.getSqrtRatioAtTick(upperTick),
                 liquidity,
                 false
             );
