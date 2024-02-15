@@ -123,8 +123,14 @@ contract Quoter {
                 abi.encode(address(pool))
             )
         {} catch (bytes memory reason) {
+            bytes32 hashedRes = keccak256(reason);
+            if (keccak256(abi.encodeWithSignature("InvalidPriceLimit()")) == hashedRes) {
+                revert('InvalidPriceLimit');
+            }else if (keccak256(abi.encodeWithSignature("NotEnoughLiquidity()")) == hashedRes){
+                revert('NotEnoughLiquidity');
+            }
             return abi.decode(reason, (uint256, uint160, int24));
-        }
+        } 
     }
 
     /*
