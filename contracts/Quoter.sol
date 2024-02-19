@@ -144,13 +144,11 @@ contract Quoter {
         int24 upperTick,
         uint256 amountInDesired
     ) public view returns (uint256 amount1) {
-        IUniswapV3Pool pool = HelpFunctions._getPool(
-            factory,
+        IUniswapV3Pool pool = IUniswapV3Pool(poolfactory.pools(
             tokenIn,
             tokenOut,
             fee
-        );
-
+        )); 
         (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
 
         if (tick < upperTick && tick > lowerTick) {
@@ -185,12 +183,11 @@ contract Quoter {
         int24 upperTick,
         uint256 amountInDesired
     ) public view returns (uint256 amount0) {
-        IUniswapV3Pool pool = HelpFunctions._getPool(
-            factory,
+        IUniswapV3Pool pool = IUniswapV3Pool(poolfactory.pools(
             tokenIn,
             tokenOut,
             fee
-        );
+        )); 
 
         (uint160 sqrtPriceX96, int24 tick, , , ) = pool.slot0();
 
