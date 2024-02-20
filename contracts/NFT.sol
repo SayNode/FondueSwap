@@ -52,6 +52,11 @@ contract NFT is ERC721 {
         uint256 amount1Min;
     }
 
+    struct TokenPosition {
+        address pool;
+        int24 lowerTick;
+        int24 upperTick;
+    }
     /*
     Variables
     */
@@ -88,12 +93,6 @@ contract NFT is ERC721 {
     constructor(address factoryAddress) ERC721("NFT Positions", "PosNFT") {
         factory = factoryAddress;
         poolfactory = PoolFactory(factory);
-    }
-
-    struct TokenPosition {
-        address pool;
-        int24 lowerTick;
-        int24 upperTick;
     }
 
     /*
@@ -383,15 +382,14 @@ contract NFT is ERC721 {
 
     /// @notice receives an user address and returns all the information regarding all the token positions he has.
     /// @param user: address of an user
-    function userToAllPositions(
+    function userToAllPositionsOne(
         address user
     )
         public
         view
         returns (
+            uint256[] memory,
             address[] memory,
-            uint128[] memory,
-            uint128[] memory,
             uint128[] memory,
             int24[] memory,
             int24[] memory
@@ -400,8 +398,6 @@ contract NFT is ERC721 {
         uint256[] memory _tokensOfOwner = tokensOfOwner(user);
         address[] memory poolAdresses = new address[](_tokensOfOwner.length);
         uint128[] memory liquidities = new uint128[](_tokensOfOwner.length);
-        uint128[] memory _tokensOwed0 = new uint128[](_tokensOfOwner.length);
-        uint128[] memory _tokensOwed1 = new uint128[](_tokensOfOwner.length);
 
         int24[] memory lowerTicks = new int24[](_tokensOfOwner.length);
         int24[] memory upperTicks = new int24[](_tokensOfOwner.length);
@@ -416,24 +412,62 @@ contract NFT is ERC721 {
                 uint128 liquidity,
                 ,
                 ,
-                uint128 tokensOwed0,
-                uint128 tokensOwed1
+                ,
+                
             ) = pool.positions(_poolPositionKey(tokenPosition));
 
             poolAdresses[i] = tokenPosition.pool;
             liquidities[i] = liquidity;
-            _tokensOwed0[i] = tokensOwed0;
-            _tokensOwed1[i] = tokensOwed1;
             lowerTicks[i] = tokenPosition.lowerTick;
             upperTicks[i] = tokenPosition.upperTick;
         }
         return (
+            _tokensOfOwner,
             poolAdresses,
             liquidities,
-            _tokensOwed0,
-            _tokensOwed1,
             lowerTicks,
             upperTicks
+        );
+    }
+
+    /// @notice receives an user address and returns atokens owed to the user
+    /// @param user: address of an user
+    function userToAllPositionsTwo(
+        address user
+    )
+        public
+        view
+        returns (
+            uint256[] memory,
+            uint128[] memory,
+            uint128[] memory
+        )
+    {
+        uint256[] memory _tokensOfOwner = tokensOfOwner(user);
+        uint128[] memory _tokensOwed0 = new uint128[](_tokensOfOwner.length);
+        uint128[] memory _tokensOwed1 = new uint128[](_tokensOfOwner.length);
+
+        for (uint i = 0; i < _tokensOfOwner.length; ++i) {
+            TokenPosition memory tokenPosition = positions[_tokensOfOwner[i]];
+            if (tokenPosition.pool == address(0x00))
+                revert HelpFunctions.WrongToken();
+
+            IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
+            (
+                ,
+                ,
+                ,
+                uint128 tokensOwed0,
+                uint128 tokensOwed1
+            ) = pool.positions(_poolPositionKey(tokenPosition));
+
+            _tokensOwed0[i] = tokensOwed0;
+            _tokensOwed1[i] = tokensOwed1;
+        }
+        return (
+            _tokensOfOwner,
+            _tokensOwed0,
+            _tokensOwed1
         );
     }
 
@@ -441,7 +475,7 @@ contract NFT is ERC721 {
     /// @param user: address of an user
     function userToAllPositionsFees(
         address user
-    ) public view returns (uint256[] memory, uint256[] memory) {
+    ) public view returns (uint256[] memory, uint256[] memory, uint256[] memory) {
         uint256[] memory _tokensOfOwner = tokensOfOwner(user);
 
         uint256[] memory _updatedTokensOwed0 = new uint256[](
@@ -458,7 +492,7 @@ contract NFT is ERC721 {
             _updatedTokensOwed0[i] = updatedTokensOwed0;
             _updatedTokensOwed1[i] = updatedTokensOwed1;
         }
-        return (_updatedTokensOwed0, _updatedTokensOwed1);
+        return (_tokensOfOwner, _updatedTokensOwed0, _updatedTokensOwed1);
     }
 
     /// @notice returns the URI of the image of an NFT token.
