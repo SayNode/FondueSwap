@@ -439,33 +439,46 @@ contract NFT is ERC721 {
         view
         returns (
             uint256[] memory,
+            int256[] memory,
+            int256[] memory,
             uint128[] memory,
             uint128[] memory
         )
     {
         uint256[] memory _tokensOfOwner = tokensOfOwner(user);
+        int256[] memory _amount0 = new int256[](_tokensOfOwner.length);
+        int256[] memory _amount1 = new int256[](_tokensOfOwner.length);
         uint128[] memory _tokensOwed0 = new uint128[](_tokensOfOwner.length);
         uint128[] memory _tokensOwed1 = new uint128[](_tokensOfOwner.length);
 
         for (uint i = 0; i < _tokensOfOwner.length; ++i) {
+            
             TokenPosition memory tokenPosition = positions[_tokensOfOwner[i]];
+
             if (tokenPosition.pool == address(0x00))
                 revert HelpFunctions.WrongToken();
 
             IUniswapV3Pool pool = IUniswapV3Pool(tokenPosition.pool);
-            (
-                ,
+
+            (uint128 liquidity,
                 ,
                 ,
                 uint128 tokensOwed0,
                 uint128 tokensOwed1
             ) = pool.positions(_poolPositionKey(tokenPosition));
 
+            (int256 amount0, int256 amount1) = pool.getPosTokenBalances(tokenPosition.lowerTick, 
+                                                                        tokenPosition.upperTick, 
+                                                                        int128(liquidity));
+            _amount0[i] = amount0;
+            _amount1[i] = amount1;
             _tokensOwed0[i] = tokensOwed0;
             _tokensOwed1[i] = tokensOwed1;
         }
         return (
             _tokensOfOwner,
+            _amount0,
+            _amount1,
             _tokensOwed0,
             _tokensOwed1
         );
