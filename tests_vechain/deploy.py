@@ -12,9 +12,17 @@ _connector = Connect("https://testnet.veblocks.net")
 MNEMONIC = config('MNEMONIC_1')
 _wallet = Wallet.fromMnemonic(MNEMONIC.split(', '))
 
-library_byte = '9828dc171e405abf5282769f90461a6e284fa583'
+# library_byte = '9828dc171e405abf5282769f90461a6e284fa583'
 myWalletAddress = '0x5959D60345aB12befE24bd8d21EF53eBa7688f6D'
 saynodeWalletAddress = '0x6620086742791009C5348d35aa5bD2018CAb5FF7'
+
+#Library
+_contract_lib = Contract.fromFile("./build/contracts/HelpFunctions.json")
+TX_HASH = _connector.deploy(_wallet, _contract_lib, [], [])
+time.sleep(30)
+_libAddress = _connector.get_tx_receipt(TX_HASH['id'])['outputs'][0]['contractAddress']
+print("Library contract deployed at", _libAddress)
+library_byte = _libAddress[2:].lower()
 
 deploy_list = ['PoolFactory', 'NFT', 'Quoter', 'SwapManager']
 for contract_name in deploy_list:
@@ -253,8 +261,3 @@ init_balance_Y = _connector.call(myWalletAddress,
                                 _TokenYAddress)
 print('\n Balance X After Swap', init_balance_X)
 print('\n  Balance Y After Swap', init_balance_Y)
-
-
-# # __HelpFunctions_________________________
-# 9828dc171E405aBf5282769F90461a6E284fA583
-# forge create --rpc-url "https://testnet.veblocks.net" --mnemonic "next, impact, head, harbor, cupboard, amateur, design, alley, hamster, already, trash, crumble" <your_private_key> src/Quoter.sol:Quoter
