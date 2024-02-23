@@ -385,6 +385,7 @@ contract Pool is IUniswapV3Pool {
         uint160 sqrtPriceLimitX96,
         bytes calldata data
     ) public returns (int256 amount0, int256 amount1) {
+         
         // Caching for gas saving
         Slot0 memory slot0_ = slot0;
         uint128 liquidity_ = liquidity;
@@ -672,5 +673,45 @@ contract Pool is IUniswapV3Pool {
             feeGrowthInside0X128,
             feeGrowthInside1X128
         );
+    }
+
+
+    ///////////////////////////////////
+    function getPosTokenBalances(
+        int24 lowerTick,
+        int24 upperTick,
+        int128 liquidityDelta
+    )
+        public view
+        returns (int256 amount0, int256 amount1)
+    {
+        // gas optimizations
+        Slot0 memory slot0_ = slot0;
+
+        if (slot0_.tick < lowerTick) {
+            amount0 = Math.calcAmount0Delta(
+                TickMath.getSqrtRatioAtTick(lowerTick),
+                TickMath.getSqrtRatioAtTick(upperTick),
+                liquidityDelta
+            );
+        } else if (slot0_.tick < upperTick) {
+            amount0 = Math.calcAmount0Delta(
+                slot0_.sqrtPriceX96,
+                TickMath.getSqrtRatioAtTick(upperTick),
+                liquidityDelta
+            );
+
+            amount1 = Math.calcAmount1Delta(
+                TickMath.getSqrtRatioAtTick(lowerTick),
+                slot0_.sqrtPriceX96,
+                liquidityDelta
+            );
+        } else {
+            amount1 = Math.calcAmount1Delta(
+                TickMath.getSqrtRatioAtTick(lowerTick),
+                TickMath.getSqrtRatioAtTick(upperTick),
+                liquidityDelta
+            );
+        }
     }
 }

@@ -261,3 +261,15 @@ init_balance_Y = _connector.call(myWalletAddress,
                                 _TokenYAddress)
 print('\n Balance X After Swap', init_balance_X)
 print('\n  Balance Y After Swap', init_balance_Y)
+
+
+# # __HelpFunctions_________________________
+# 9828dc171E405aBf5282769F90461a6E284fA583
+# forge create --rpc-url "https://testnet.veblocks.net" --mnemonic "next, impact, head, harbor, cupboard, amateur, design, alley, hamster, already, trash, crumble" <your_private_key> src/Quoter.sol:Quoter
+
+amounts = _connector.call(myWalletAddress, 
+                                _contract_NFT, 
+                                "userToAllPositionsTwo", 
+                                [myWalletAddress], 
+                                _NFTAddress)
+print(amounts)

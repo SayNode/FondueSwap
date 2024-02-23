@@ -12,28 +12,28 @@ library HelpFunctions {
     error SlippageCheckFailed(uint256 amount0, uint256 amount1);
     error TooLittleReceived(uint256 amountOut);
 
-    struct MintParams {
-        address recipient;
-        address tokenA;
-        address tokenB;
-        uint24 fee;
-        int24 lowerTick;
-        int24 upperTick;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
+    // struct MintParams {
+    //     address recipient;
+    //     address tokenA;
+    //     address tokenB;
+    //     uint24 fee;
+    //     int24 lowerTick;
+    //     int24 upperTick;
+    //     uint256 amount0Desired;
+    //     uint256 amount1Desired;
+    //     uint256 amount0Min;
+    //     uint256 amount1Min;
+    // }
 
-    struct AddLiquidityInternalParams {
-        IUniswapV3Pool pool;
-        int24 lowerTick;
-        int24 upperTick;
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        uint256 amount0Min;
-        uint256 amount1Min;
-    }
+    // struct AddLiquidityInternalParams {
+    //     IUniswapV3Pool pool;
+    //     int24 lowerTick;
+    //     int24 upperTick;
+    //     uint256 amount0Desired;
+    //     uint256 amount1Desired;
+    //     uint256 amount0Min;
+    //     uint256 amount1Min;
+    // }
 
     struct TokenPosition {
         address pool;
